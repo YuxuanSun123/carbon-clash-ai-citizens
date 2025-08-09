@@ -1,7 +1,6 @@
 // DeepSeek API 服务
 import type { Player, PlayerType } from '../hooks/useMultiPlayerGameState';
 import type { BuildingType } from '../data/buildings';
-import { buildingData } from '../data/buildings';
 import { pathCoordinates } from '../utils/path';
 
 // DeepSeek API 配置
@@ -321,8 +320,7 @@ function getFallbackAIChoice(player: Player): BuildingType | null {
 // 政策选择AI（可选功能）
 export async function getAIPolicyChoiceFromDeepSeek(
   player: Player,
-  policyChoices: Array<{ text: string; effects: any }>,
-  allPlayers: Player[]
+  policyChoices: Array<{ text: string; effects: any }>
 ): Promise<number> {
   try {
     const systemPrompt = buildSystemPrompt(player.type) + '\n\n现在需要你选择政策选项，请返回选项编号（0、1、2等）。';

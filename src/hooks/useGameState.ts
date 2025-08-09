@@ -8,13 +8,9 @@ import {
   taxEvents, 
   trapEvents, 
   natureRewards, 
-  policyChoices,
   getRandomEvent,
   getRandomPolicyChoice 
 } from "../data/events";
-
-// 记录格子的建造情况
-type BuildMap = Record<string, BuildingType>;
 
 export const useGameState = () => {
   const [playerIndex, setPlayerIndex] = useState(0);
@@ -26,7 +22,7 @@ export const useGameState = () => {
   const [eco, setEco] = useState(0);
 
   // 记录已建造格子
-  const [built, setBuilt] = useState<BuildMap>({});
+  const [built, setBuilt] = useState<Record<string, BuildingType>>({});
 
   // 起点是否已经第一次经过
   const [passedStart, setPassedStart] = useState(false);
@@ -96,10 +92,10 @@ export const useGameState = () => {
 
   // 应用事件效果
   const applyEventEffects = (effects: GameEvent['effects']) => {
-    if (effects.money) setMoney(prev => Math.max(0, prev + effects.money));
-    if (effects.co2) setCO2(prev => Math.max(0, prev + effects.co2));
-    if (effects.eco) setEco(prev => Math.max(0, prev + effects.eco));
-    if (effects.skipTurns) setSkipTurns(prev => prev + effects.skipTurns);
+    if (effects.money) setMoney(prev => Math.max(0, prev + effects.money!));
+    if (effects.co2) setCO2(prev => Math.max(0, prev + effects.co2!));
+    if (effects.eco) setEco(prev => Math.max(0, prev + effects.eco!));
+    if (effects.skipTurns) setSkipTurns(prev => prev + effects.skipTurns!);
   };
 
   // 触发格子事件

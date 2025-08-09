@@ -4,7 +4,7 @@ interface PlayerTokenProps {
   playerId?: number;
 }
 
-const PlayerToken = ({ size = "medium", playerType = 'human', playerId = 0 }: PlayerTokenProps) => {
+const PlayerToken = ({ size = "medium", playerType = 'human' }: PlayerTokenProps) => {
   const sizeClasses = {
     small: "w-6 h-6",
     medium: "w-8 h-8",

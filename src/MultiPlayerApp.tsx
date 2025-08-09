@@ -1,7 +1,5 @@
 import GameMap from "./components/GameMap";
 import DiceRoller from "./components/DiceRoller";
-import PlayerToken from "./components/PlayerToken";
-import EventModal from "./components/EventModal";
 import PolicyModal from "./components/PolicyModal";
 import TransportModal from "./components/TransportModal";
 import EventHistory from "./components/EventHistory";
@@ -23,7 +21,6 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
     turnCount,
     gamePhase,
     aiThinking,
-    getCurrentPosition,
     getAllBuildings,
     canBuildHere,
     buildAtCurrent,
@@ -42,9 +39,9 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
     closeEventModal,
     closePolicyModal,
     showTransportModal,
+    setShowTransportModal,
     handleTransportChoice,
     gameResult,
-    calculatePlayerScore,
     restartGame,
     MAX_TURNS,
     MAX_CO2,
@@ -53,10 +50,10 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
     debugAddMoney,
     debugAddCO2,
     debugAddEco,
-    getBuildingOwnerAtPosition,
     debugSetTurn,
     debugTriggerGameEnd,
     debugTestAIChoice,
+    getBuildingOwnerAtPosition,
   } = useMultiPlayerGameState();
 
   const [showHistory, setShowHistory] = useState(false);
@@ -398,7 +395,10 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
       {/* 交通方式选择弹窗 */}
       {showTransportModal && (
         <TransportModal
-          onChoice={handleTransportChoice}
+          isOpen={showTransportModal}
+          onClose={() => setShowTransportModal(false)}
+          onChoose={handleTransportChoice}
+          playerName={currentPlayer.name}
         />
       )}
       

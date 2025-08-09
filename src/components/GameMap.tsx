@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import type { PathCell } from "../utils/path";
 import { pathCoordinates } from "../utils/path";
 import PlayerToken from "./PlayerToken";
 import type { BuildingType } from "../data/buildings";
@@ -134,7 +133,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
    * 使用 React.memo 进行性能优化，避免不必要的重渲染
    * 统一管理建筑的视觉样式和颜色主题
    */
-  const BuildingDisplay = React.memo(({ index, building, owner }: { index: number, building: BuildingType, owner: any }) => {
+  const BuildingDisplay = React.memo(({ building, owner }: { index: number, building: BuildingType, owner: any }) => {
     const colors = owner ? getPlayerColors(owner.id) : DEFAULT_COLORS;
     const ringClass = colors.ring ? `ring-2 ${colors.ring}` : '';
     const icon = buildingIcons[building] || '🏗️';
@@ -189,35 +188,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
     return icons[type as keyof typeof icons] || '❓';
   };
 
-  const getCellColor = (type: string): string => {
-    const colors = {
-      start: 'from-emerald-500/80 via-green-400/70 to-teal-500/80 border-emerald-400/90 shadow-emerald-400/50',
-      jail: 'from-gray-600/80 via-slate-500/70 to-gray-700/80 border-gray-500/90 shadow-gray-500/50',
-      parking: 'from-blue-500/80 via-cyan-400/70 to-blue-600/80 border-blue-400/90 shadow-blue-400/50',
-      police: 'from-red-600/80 via-rose-500/70 to-red-700/80 border-red-500/90 shadow-red-500/50',
-      build: 'from-blue-500/70 via-cyan-400/60 to-indigo-500/70 border-blue-400/80 shadow-blue-400/40',
-      event: 'from-purple-500/70 via-pink-400/60 to-violet-500/70 border-purple-400/80 shadow-purple-400/40',
-      tax: 'from-red-500/70 via-rose-400/60 to-pink-500/70 border-red-400/80 shadow-red-400/40',
-      nature: 'from-green-500/70 via-lime-400/60 to-emerald-500/70 border-green-400/80 shadow-green-400/40',
-      policy: 'from-indigo-500/70 via-blue-400/60 to-cyan-500/70 border-indigo-400/80 shadow-indigo-400/40',
-      trap: 'from-orange-500/70 via-yellow-400/60 to-amber-500/70 border-orange-400/80 shadow-orange-400/40'
-    };
-    return colors[type as keyof typeof colors] || 'from-gray-500/70 via-slate-400/60 to-gray-500/70 border-gray-400/80 shadow-gray-400/40';
-  };
 
-  // 获取建筑所有者的颜色主题
-  const getBuildingOwnerColor = (owner: Player | null): string => {
-    if (!owner) return '';
-    
-    const playerColors = {
-      0: 'from-blue-500/80 via-blue-400/70 to-blue-600/80 border-blue-400/90 shadow-blue-400/50',
-      1: 'from-yellow-500/80 via-yellow-400/70 to-yellow-600/80 border-yellow-400/90 shadow-yellow-400/50',
-      2: 'from-green-500/80 via-green-400/70 to-green-600/80 border-green-400/90 shadow-green-400/50',
-      3: 'from-orange-500/80 via-orange-400/70 to-orange-600/80 border-orange-400/90 shadow-orange-400/50'
-    };
-    
-    return playerColors[owner.id as keyof typeof playerColors] || 'from-gray-500/80 via-gray-400/70 to-gray-600/80 border-gray-400/90 shadow-gray-400/50';
-  };
 
   // 获取玩家渐变颜色的CSS值
   const getPlayerGradientColors = (playerId: number): string => {
@@ -262,32 +233,6 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
   };
 
   // 大富翁棋盘位置映射 (40格环形布局)
-  const getMonopolyPosition = (index: number): { row: number; col: number } => {
-    const positions: { row: number; col: number }[] = [];
-    
-    // 底边 (0-10): 从右下角到左下角 - 11个格子
-    for (let i = 10; i >= 0; i--) {
-      positions.push({ row: 10, col: i });
-    }
-    
-    // 左边 (11-19): 从下到上 - 9个格子
-    for (let i = 9; i >= 1; i--) {
-      positions.push({ row: i, col: 0 });
-    }
-    
-    // 顶边 (20-30): 从左上角到右上角 - 11个格子
-    for (let i = 0; i <= 10; i++) {
-      positions.push({ row: 0, col: i });
-    }
-    
-    // 右边 (31-39): 从上到下 - 9个格子
-    for (let i = 1; i <= 9; i++) {
-      positions.push({ row: i, col: 10 });
-    }
-    
-    return positions[index] || { row: 0, col: 0 };
-  };
-
   const renderMonopolyCell = (index: number) => {
     const type = getCellType(index);
     const icon = getCellIcon(type);
@@ -313,15 +258,11 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
       console.log(`🏗️ 格子 ${index} (${posKey}) 有建筑: ${hasBuilding}, 所有者: ${finalBuildingOwner?.name || 'unknown'}`);
     }
     
-    const colorClass = hasBuilding && finalBuildingOwner ? getBuildingOwnerColor(finalBuildingOwner) : getCellColor(type);
-    
     // 检查是否可以建造
     const canBuild = canBuildHere && isCurrentPlayerHere && canBuildHere();
     
     const isCorner = index === 0 || index === 10 || index === 20 || index === 30;
     const cellSize = isCorner ? 'w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36' : 'w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 lg:w-28 lg:h-32 xl:w-32 xl:h-36';
-
-    const builtIcon = hasBuilding ? buildingIcons[hasBuilding] || "🏗️" : "";
 
     return (
       <div

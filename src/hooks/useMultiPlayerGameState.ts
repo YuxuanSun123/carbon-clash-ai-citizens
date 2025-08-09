@@ -5,10 +5,8 @@ import { buildingData } from "../data/buildings";
 import type { GameEvent, PolicyChoice } from "../data/events";
 import { 
   randomEvents, 
-  taxEvents, 
   trapEvents, 
   natureRewards, 
-  policyChoices,
   getRandomEvent,
   getRandomPolicyChoice 
 } from "../data/events";
@@ -37,8 +35,7 @@ export interface Player {
   moneyPerTurn: number; // 每回合金币消耗（负数为消耗）
 }
 
-// 记录格子的建造情况（向后兼容）
-type BuildMap = Record<string, BuildingType>;
+
 
 export const useMultiPlayerGameState = () => {
   // 初始化三个玩家
@@ -443,7 +440,7 @@ export const useMultiPlayerGameState = () => {
     // 创建API调用Promise
     const apiPromise = async (): Promise<number> => {
       // 使用DeepSeek API进行政策选择
-      const choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices, players);
+      const choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices);
       console.log(`DeepSeek AI (${player.name}) 政策选择: ${choiceIndex}`);
       return choiceIndex;
     };
@@ -520,7 +517,8 @@ export const useMultiPlayerGameState = () => {
       });
       
       // 使用DeepSeek API进行建筑选择（传入位置修正后的玩家信息）
-      const choice = await getAIBuildingChoiceFromDeepSeek(playerWithCorrectPosition, players, gamePhase, turnCount);
+      const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
+      const choice = await getAIBuildingChoiceFromDeepSeek(playerWithCorrectPosition, players, apiGamePhase, turnCount);
       console.log(`✅ DeepSeek API决策成功! 玩家 ${player.name} 选择: ${choice || 'none'}`);
       console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
       return choice;
@@ -607,9 +605,6 @@ export const useMultiPlayerGameState = () => {
     
     // 使用传入的实际位置，如果没有传入则使用玩家当前位置
     const checkPosition = actualPosition !== undefined ? actualPosition : player.position;
-    const currentPosition = pathCoordinates[checkPosition];
-    const posKey = `${currentPosition.row}-${currentPosition.col}`;
-    
     // 检查是否有任何玩家在此位置建造了建筑
     const buildingOwner = getBuildingOwnerAtPosition(checkPosition);
     if (buildingOwner) return false; // 已有建筑，无法建造
@@ -815,11 +810,6 @@ export const useMultiPlayerGameState = () => {
       }
     }, 1000);
   }, [players, setPlayers, setGamePhase, triggerCellEvent, getAIBuildingChoice, buildAtCurrentForPlayer, setCurrentPlayerIndex, setTurnCount, setAiThinking]);
-
-  // AI建造逻辑
-  const handleAIBuilding = () => {
-    handleAIBuildingById(currentPlayer.id);
-  };
 
   // 下一回合
   const nextTurn = useCallback(() => {
@@ -1170,6 +1160,7 @@ export const useMultiPlayerGameState = () => {
     
     // 交通方式选择
     showTransportModal,
+    setShowTransportModal,
     handleTransportChoice,
     
     // 游戏结束系统
@@ -1205,5 +1196,6 @@ export const useMultiPlayerGameState = () => {
       checkGameEnd();
     },
     debugTestAIChoice: testAIBuildingChoice,
+    getBuildingOwnerAtPosition,
   };
 };
