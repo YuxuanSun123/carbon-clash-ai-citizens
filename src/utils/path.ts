@@ -13,35 +13,51 @@ export interface PathCell {
 }
 
 export const pathCoordinates: PathCell[] = [
-  { row: 0, col: 0, type: "build" },
-  { row: 0, col: 1, type: "build" },
-  { row: 0, col: 2, type: "event" },
-  { row: 0, col: 3, type: "build" },
-  { row: 0, col: 4, type: "policy" },
-  { row: 0, col: 5, type: "build" },
-  { row: 0, col: 6, type: "tax" },
-  { row: 0, col: 7, type: "build" },
+  // 顶边 (0-9)
+  { row: 0, col: 0, type: "build" },   // 0 - 起点
+  { row: 0, col: 1, type: "build" },   // 1
+  { row: 0, col: 2, type: "event" },   // 2
+  { row: 0, col: 3, type: "build" },   // 3
+  { row: 0, col: 4, type: "policy" },  // 4
+  { row: 0, col: 5, type: "build" },   // 5
+  { row: 0, col: 6, type: "tax" },     // 6
+  { row: 0, col: 7, type: "build" },   // 7
+  { row: 0, col: 8, type: "event" },   // 8
+  { row: 0, col: 9, type: "build" },   // 9
+  { row: 0, col: 10, type: "build" },  // 10 - 监狱
 
-  { row: 1, col: 7, type: "build" },
-  { row: 2, col: 7, type: "nature" },
-  { row: 3, col: 7, type: "build" },
-  { row: 4, col: 7, type: "event" },
-  { row: 5, col: 7, type: "build" },
-  { row: 6, col: 7, type: "trap" },
-  { row: 7, col: 7, type: "build" },
+  // 右边 (11-19)
+  { row: 1, col: 10, type: "build" },  // 11
+  { row: 2, col: 10, type: "nature" }, // 12
+  { row: 3, col: 10, type: "build" },  // 13
+  { row: 4, col: 10, type: "event" },  // 14
+  { row: 5, col: 10, type: "build" },  // 15
+  { row: 6, col: 10, type: "trap" },   // 16
+  { row: 7, col: 10, type: "build" },  // 17
+  { row: 8, col: 10, type: "policy" }, // 18
+  { row: 9, col: 10, type: "build" },  // 19
+  { row: 10, col: 10, type: "build" }, // 20 - 免费停车
 
-  { row: 7, col: 6, type: "build" },
-  { row: 7, col: 5, type: "build" },
-  { row: 7, col: 4, type: "policy" },
-  { row: 7, col: 3, type: "event" },
-  { row: 7, col: 2, type: "build" },
-  { row: 7, col: 1, type: "tax" },
-  { row: 7, col: 0, type: "build" },
+  // 底边 (21-29)
+  { row: 10, col: 9, type: "build" },  // 21
+  { row: 10, col: 8, type: "build" },  // 22
+  { row: 10, col: 7, type: "policy" }, // 23
+  { row: 10, col: 6, type: "event" },  // 24
+  { row: 10, col: 5, type: "build" },  // 25
+  { row: 10, col: 4, type: "tax" },    // 26
+  { row: 10, col: 3, type: "build" },  // 27
+  { row: 10, col: 2, type: "nature" }, // 28
+  { row: 10, col: 1, type: "build" },  // 29
+  { row: 10, col: 0, type: "build" },  // 30 - 警察局
 
-  { row: 6, col: 0, type: "build" },
-  { row: 5, col: 0, type: "event" },
-  { row: 4, col: 0, type: "nature" },
-  { row: 3, col: 0, type: "build" },
-  { row: 2, col: 0, type: "trap" },
-  { row: 1, col: 0, type: "build" },
+  // 左边 (31-39)
+  { row: 9, col: 0, type: "build" },   // 31
+  { row: 8, col: 0, type: "event" },   // 32
+  { row: 7, col: 0, type: "nature" },  // 33
+  { row: 6, col: 0, type: "build" },   // 34
+  { row: 5, col: 0, type: "trap" },    // 35
+  { row: 4, col: 0, type: "build" },   // 36
+  { row: 3, col: 0, type: "policy" },  // 37
+  { row: 2, col: 0, type: "build" },   // 38
+  { row: 1, col: 0, type: "event" },   // 39
 ];

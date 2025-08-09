@@ -95,6 +95,9 @@ export interface PolicyChoice {
       money?: number;
       co2?: number;
       eco?: number;
+      diceModifier?: number; // 骰子点数修改器
+      co2PerTurn?: number; // 每回合额外CO2排放
+      moneyPerTurn?: number;
     };
   }[];
 }
@@ -138,6 +141,26 @@ export const policyChoices: PolicyChoice[] = [
         text: "不做改变",
         effects: { money: 50, co2: 20, eco: -10 }
       }
+    ]
+  },
+  {
+    id: "vehicle_choice_policy",
+    name: "个人交通工具选择",
+    description: "选择你的主要出行方式，这将影响你的移动能力和环境影响",
+    icon: "🚲",
+    choices: [
+      {
+        text: "汽车出行（快速但高污染）",
+        effects: { diceModifier: 2, co2PerTurn: 5, money: -200 }
+      },
+      {
+        text: "自行车出行（灵活但无环保奖励）",
+        effects: { diceModifier: 1, money: -50 }
+      },
+      {
+          text: "公交出行（特殊移动模式）",
+          effects: { diceModifier: -999, moneyPerTurn: -5 }
+        }
     ]
   }
 ];
