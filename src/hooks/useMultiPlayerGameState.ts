@@ -132,8 +132,8 @@ export const useMultiPlayerGameState = () => {
 
   // 游戏常量
   const MAX_TURNS = 30; // 最大回合数
-  const MAX_CO2 = 1000; // 单个玩家CO2上限
-  const GLOBAL_CO2_LIMIT = 2000; // 全球CO2总和上限
+  const MAX_CO2 = Infinity; // 单个玩家CO2无限制
+  const GLOBAL_CO2_LIMIT = 1000; // 全球CO2总和上限
   const BANKRUPTCY_THRESHOLD = -500; // 破产阈值
 
   // AI决策延迟
@@ -194,13 +194,6 @@ export const useMultiPlayerGameState = () => {
         endGame('其他玩家破产', `${survivingPlayers[0].name} 获胜`);
         return;
       }
-    }
-
-    // 检查环境崩溃条件
-    const highCO2Players = players.filter(p => p.co2 >= MAX_CO2);
-    if (highCO2Players.length > 0) {
-      endGame('环境崩溃', `CO2排放过高，游戏结束`);
-      return;
     }
 
     // 检查全球CO2总和限制
@@ -1335,7 +1328,11 @@ export const useMultiPlayerGameState = () => {
         break;
         
       case 10: // 监狱
-        // 监狱格子本身不做特殊处理，只是作为传送目标
+        // 到达监狱格子直接轮空2回合
+        setPlayers(prev => prev.map(p => 
+          p.id === playerId ? { ...p, skipTurns: p.skipTurns + 2 } : p
+        ));
+        setEventHistory(prev => [...prev, `${player.name} 到达监狱，被关押2回合！`]);
         break;
         
       case 20: // 免费停车
@@ -1354,7 +1351,15 @@ export const useMultiPlayerGameState = () => {
         break;
         
       case 30: // 警察局
-        // 暂时保留，后续可以添加执法功能
+        // 碳排放检查：如果碳排放超过300，拘留一回合
+        if (player.co2 > 300) {
+          setPlayers(prev => prev.map(p => 
+            p.id === playerId ? { ...p, skipTurns: p.skipTurns + 1 } : p
+          ));
+          setEventHistory(prev => [...prev, `${player.name} 因碳排放超标（${player.co2}）被警察局拘留，跳过下一回合！`]);
+        } else {
+          setEventHistory(prev => [...prev, `${player.name} 到达警察局，碳排放检查通过（${player.co2}/300）`]);
+        }
         break;
     }
   };
