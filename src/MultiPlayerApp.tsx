@@ -1,6 +1,7 @@
 import GameMap from "./components/GameMap";
 import DiceRoller from "./components/DiceRoller";
 import PolicyModal from "./components/PolicyModal";
+import PolicyResultModal from "./components/PolicyResultModal";
 import TransportModal from "./components/TransportModal";
 import EventHistory from "./components/EventHistory";
 import GameEndModal from "./components/GameEndModal";
@@ -38,6 +39,15 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
     handlePolicyChoice,
     closeEventModal,
     closePolicyModal,
+    // 多人投票系统
+    votingInProgress,
+    playerVotes,
+    votedPlayers,
+    currentVotingPlayerId,
+    policyResult,
+    showPolicyResult,
+    // handlePolicyVote,
+    closePolicyResult,
     showTransportModal,
     setShowTransportModal,
     handleTransportChoice,
@@ -389,6 +399,24 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
           policy={currentPolicy}
           onChoice={handlePolicyChoice}
           onClose={closePolicyModal}
+          votingInProgress={votingInProgress}
+          playerVotes={playerVotes}
+          votedPlayers={votedPlayers}
+          totalPlayers={players.length}
+          currentPlayerId={currentPlayer.id}
+          players={players}
+          currentVotingPlayerId={currentVotingPlayerId}
+        />
+      )}
+      
+      {/* 政策投票结果弹窗 */}
+      {showPolicyResult && policyResult && (
+        <PolicyResultModal
+          policy={policyResult.policy}
+          winningChoiceIndex={policyResult.winningChoiceIndex}
+          votes={policyResult.votes}
+          totalPlayers={players.length}
+          onClose={closePolicyResult}
         />
       )}
       

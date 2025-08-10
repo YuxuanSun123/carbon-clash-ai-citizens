@@ -106,7 +106,19 @@ export const useMultiPlayerGameState = () => {
   const [eventHistory, setEventHistory] = useState<string[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [pendingPolicyPlayer, setPendingPolicyPlayer] = useState<number | null>(null);
+  // const [pendingPolicyPlayer, setPendingPolicyPlayer] = useState<number | null>(null);
+  
+  // 多人投票系统状态
+  const [votingInProgress, setVotingInProgress] = useState(false);
+  const [playerVotes, setPlayerVotes] = useState<Record<number, number>>({});
+  const [votedPlayers, setVotedPlayers] = useState<Set<number>>(new Set());
+  const [currentVotingPlayerId, setCurrentVotingPlayerId] = useState<number | undefined>(undefined);
+  const [policyResult, setPolicyResult] = useState<{
+    policy: PolicyChoice;
+    winningChoiceIndex: number;
+    votes: Record<number, number>;
+  } | null>(null);
+  const [showPolicyResult, setShowPolicyResult] = useState(false);
   
   // 交通方式选择状态
   const [showTransportModal, setShowTransportModal] = useState(false);
@@ -208,6 +220,27 @@ export const useMultiPlayerGameState = () => {
     }
   }, [players, turnCount, gameResult.isEnded]);
 
+  // 监听投票状态变化，自动触发下一个玩家投票或结束投票
+  useEffect(() => {
+    if (!votingInProgress || !currentPolicy) return;
+    
+    console.log(`🔄 投票状态变化检查: 已投票 ${votedPlayers.size}/${players.length} 人`);
+    
+    // 检查是否所有玩家都已投票
+    if (votedPlayers.size >= players.length) {
+      console.log(`🏁 所有玩家已投票，准备结束投票`);
+      setTimeout(() => {
+        finalizePolicyVoting();
+      }, 1000);
+    } else if (votedPlayers.size > 0) {
+      // 只有在有人投票后才触发下一个玩家投票
+      console.log(`➡️ 继续下一个玩家投票`);
+      setTimeout(() => {
+        triggerNextPlayerVote();
+      }, 500);
+    }
+  }, [votedPlayers, votingInProgress, currentPolicy, players.length]);
+
   // 结束游戏
   const endGame = (reason: string, message: string) => {
     const scores = players.map(player => ({
@@ -296,8 +329,15 @@ export const useMultiPlayerGameState = () => {
     setEventHistory([]);
     setShowEventModal(false);
     setShowPolicyModal(false);
-    setPendingPolicyPlayer(null);
-    setAiThinking(false);
+    // setPendingPolicyPlayer(null);
+    // 重置投票状态
+     setVotingInProgress(false);
+     setPlayerVotes({});
+     setVotedPlayers(new Set());
+     setCurrentVotingPlayerId(undefined);
+     setPolicyResult(null);
+     setShowPolicyResult(false);
+     setAiThinking(false);
   };
 
   // 计算建筑每回合效果
@@ -327,17 +367,49 @@ export const useMultiPlayerGameState = () => {
     setPlayers(prev => prev.map(player => {
       if (player.id !== playerId) return player;
       
+      let newMoney = player.money;
+      let newMoneyPerTurn = player.moneyPerTurn;
+      
+      // 处理固定金钱变化
+      if (effects.money !== undefined) {
+        if (effects.money === -0.1) {
+          // 特殊处理：-10%金钱
+          newMoney = Math.max(0, player.money * 0.9);
+        } else {
+          newMoney = Math.max(0, player.money + effects.money);
+        }
+      }
+      
+      // 处理每回合金钱变化
+      if (effects.moneyPerTurn !== undefined) {
+        if (effects.moneyPerTurn === 0.15) {
+          // 特殊处理：+15%每回合金钱产出
+          const currentIncome = getTotalIncomeForPlayer(player);
+          newMoneyPerTurn = player.moneyPerTurn + Math.floor(currentIncome * 0.15);
+        } else {
+          newMoneyPerTurn = player.moneyPerTurn + effects.moneyPerTurn;
+        }
+      }
+      
       return {
         ...player,
-        money: Math.max(0, player.money + (effects.money || 0)),
+        money: newMoney,
         co2: Math.max(0, player.co2 + (effects.co2 || 0)),
         eco: Math.max(0, player.eco + (effects.eco || 0)),
         skipTurns: player.skipTurns + (effects.skipTurns || 0),
         diceModifier: player.diceModifier + (effects.diceModifier || 0),
         co2PerTurn: player.co2PerTurn + (effects.co2PerTurn || 0),
-        moneyPerTurn: player.moneyPerTurn + (effects.moneyPerTurn || 0)
+        moneyPerTurn: newMoneyPerTurn
       };
     }));
+  };
+  
+  // 计算指定玩家的总收入
+  const getTotalIncomeForPlayer = (player: Player) => {
+    return Object.values(player.built).reduce((total, buildingType) => {
+      const data = buildingData[buildingType];
+      return total + data.income;
+    }, 0);
   };
 
   // 计算基于CO2排放量的动态税收
@@ -394,22 +466,32 @@ export const useMultiPlayerGameState = () => {
         break;
       case 'policy':
         const policy = getRandomPolicyChoice();
-        setCurrentPolicy(policy);
-        setPendingPolicyPlayer(playerId);
-        
-        // AI自动选择政策
-        if (players[playerId].type !== 'human') {
-          // 直接调用AI政策选择，不使用setTimeout，让API有足够时间响应
-          handleAIPolicyChoice(playerId, policy);
-        } else {
-          setShowPolicyModal(true);
-        }
+        startPolicyVoting(policy);
         return;
       default:
         return;
     }
     
     if (event) {
+      // 特殊处理个人交通工具选择事件
+      if (event.id === 'vehicle_choice_event') {
+        setPendingTransportPlayer(playerId);
+        setEventHistory(prev => [...prev, `${players[playerId].name}: ${event.name}`]);
+        
+        if (players[playerId].type === 'human') {
+          setShowTransportModal(true);
+        } else {
+          // AI自动选择交通方式
+          setTimeout(() => {
+            const aiChoice = players[playerId].type === 'ai-eco' ? 1 : // 环保AI选择自行车
+                           players[playerId].type === 'ai-income' ? 2 : // 商业AI选择汽车
+                           0; // 默认步行
+            handleTransportChoice(aiChoice);
+          }, 1000);
+        }
+        return;
+      }
+      
       setCurrentEvent(event);
       setEventHistory(prev => [...prev, `${players[playerId].name}: ${event.name}`]);
       applyEventEffects(playerId, event.effects);
@@ -427,68 +509,68 @@ export const useMultiPlayerGameState = () => {
   };
 
   // AI政策选择逻辑（带30秒超时）
-  const handleAIPolicyChoice = async (playerId: number, policy: PolicyChoice) => {
-    const player = players[playerId];
-    
-    // 创建30秒超时的Promise
-    const timeoutPromise = new Promise<number>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('DeepSeek政策选择API调用超时（30秒）'));
-      }, 30000); // 30秒超时
-    });
-    
-    // 创建API调用Promise
-    const apiPromise = async (): Promise<number> => {
-      // 使用DeepSeek API进行政策选择
-      const choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices);
-      console.log(`DeepSeek AI (${player.name}) 政策选择: ${choiceIndex}`);
-      return choiceIndex;
-    };
-    
-    try {
-      // 使用Promise.race实现超时机制
-      console.log(`⏰ 开始政策选择API调用，最大等待时间30秒...`);
-      const choiceIndex = await Promise.race([apiPromise(), timeoutPromise]);
-      handlePolicyChoice(choiceIndex);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('超时')) {
-        console.warn('⏰ DeepSeek政策选择API调用超时（30秒），使用备用逻辑:', error.message);
-      } else {
-        console.error('❌ DeepSeek政策选择失败，使用备用逻辑:', error);
-      }
-      
-      // 备用逻辑：原有的简单AI决策
-      let choiceIndex = 0;
-      
-      if (player.type === 'ai-income') {
-        // 商业AI优先选择增加金钱的选项
-        choiceIndex = policy.choices.findIndex(choice => (choice.effects.money || 0) > 0);
-        if (choiceIndex === -1) {
-          // 如果没有增加金钱的选项，选择损失最少的
-          choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
-            const currentMoney = choice.effects.money || 0;
-            const bestMoney = policy.choices[bestIdx].effects.money || 0;
-            return currentMoney > bestMoney ? idx : bestIdx;
-          }, 0);
-        }
-      } else if (player.type === 'ai-eco') {
-        // 环保AI优先选择增加生态或减少CO2的选项
-        choiceIndex = policy.choices.findIndex(choice => 
-          (choice.effects.eco || 0) > 0 || (choice.effects.co2 || 0) < 0
-        );
-        if (choiceIndex === -1) {
-          // 如果没有环保选项，选择对环境影响最小的
-          choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
-            const currentEcoScore = (choice.effects.eco || 0) - (choice.effects.co2 || 0);
-            const bestEcoScore = (policy.choices[bestIdx].effects.eco || 0) - (policy.choices[bestIdx].effects.co2 || 0);
-            return currentEcoScore > bestEcoScore ? idx : bestIdx;
-          }, 0);
-        }
-      }
-      
-      handlePolicyChoice(choiceIndex);
-    }
-  };
+  // const handleAIPolicyChoice = async (playerId: number, policy: PolicyChoice) => {
+  //   const player = players[playerId];
+  //   
+  //   // 创建30秒超时的Promise
+  //   const timeoutPromise = new Promise<number>((_, reject) => {
+  //     setTimeout(() => {
+  //       reject(new Error('DeepSeek政策选择API调用超时（30秒）'));
+  //     }, 30000); // 30秒超时
+  //   });
+
+  //   // 创建API调用Promise
+  //   const apiPromise = async (): Promise<number> => {
+  //     // 使用DeepSeek API进行政策选择
+  //     const choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices);
+  //     console.log(`DeepSeek AI (${player.name}) 政策选择: ${choiceIndex}`);
+  //     return choiceIndex;
+  //   };
+
+  //   try {
+  //     // 使用Promise.race实现超时机制
+  //     console.log(`⏰ 开始政策选择API调用，最大等待时间30秒...`);
+  //     const choiceIndex = await Promise.race([apiPromise(), timeoutPromise]);
+  //     handlePolicyChoice(choiceIndex);
+  //   } catch (error) {
+  //     if (error instanceof Error && error.message.includes('超时')) {
+  //       console.warn('⏰ DeepSeek政策选择API调用超时（30秒），使用备用逻辑:', error.message);
+  //     } else {
+  //       console.error('❌ DeepSeek政策选择失败，使用备用逻辑:', error);
+  //     }
+  //     
+  //     // 备用逻辑：原有的简单AI决策
+  //     let choiceIndex = 0;
+  //     
+  //     if (player.type === 'ai-income') {
+  //       // 商业AI优先选择增加金钱的选项
+  //       choiceIndex = policy.choices.findIndex(choice => (choice.effects.money || 0) > 0);
+  //       if (choiceIndex === -1) {
+  //         // 如果没有增加金钱的选项，选择损失最少的
+  //         choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
+  //           const currentMoney = choice.effects.money || 0;
+  //           const bestMoney = policy.choices[bestIdx].effects.money || 0;
+  //           return currentMoney > bestMoney ? idx : bestIdx;
+  //         }, 0);
+  //       }
+  //     } else if (player.type === 'ai-eco') {
+  //       // 环保AI优先选择增加生态或减少CO2的选项
+  //       choiceIndex = policy.choices.findIndex(choice => 
+  //         (choice.effects.eco || 0) > 0 || (choice.effects.co2 || 0) < 0
+  //       );
+  //       if (choiceIndex === -1) {
+  //         // 如果没有环保选项，选择对环境影响最小的
+  //         choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
+  //           const currentEcoScore = (choice.effects.eco || 0) - (choice.effects.co2 || 0);
+  //           const bestEcoScore = (policy.choices[bestIdx].effects.eco || 0) - (policy.choices[bestIdx].effects.co2 || 0);
+  //           return currentEcoScore > bestEcoScore ? idx : bestIdx;
+  //         }, 0);
+  //       }
+  //     }
+  //     
+  //     handlePolicyChoice(choiceIndex);
+  //   }
+  // };
 
   // AI建筑选择逻辑（使用DeepSeek API，带30秒超时）
   const getAIBuildingChoice = async (player: Player, actualPosition?: number): Promise<BuildingType | null> => {
@@ -605,6 +687,14 @@ export const useMultiPlayerGameState = () => {
     
     // 使用传入的实际位置，如果没有传入则使用玩家当前位置
     const checkPosition = actualPosition !== undefined ? actualPosition : player.position;
+    
+    // 检查格子类型，只有'build'类型的格子才能建造
+    const currentCell = pathCoordinates[checkPosition];
+    if (!currentCell || currentCell.type !== 'build') {
+      console.log(`🚫 位置 ${checkPosition} 不是建造格子，类型: ${currentCell?.type || 'unknown'}`);
+      return false;
+    }
+    
     // 检查是否有任何玩家在此位置建造了建筑
     const buildingOwner = getBuildingOwnerAtPosition(checkPosition);
     if (buildingOwner) return false; // 已有建筑，无法建造
@@ -937,31 +1027,234 @@ export const useMultiPlayerGameState = () => {
     buildAtCurrentForPlayer(currentPlayer.id, type);
   };
 
-  // 处理政策选择
-  const handlePolicyChoice = (choiceIndex: number) => {
-    if (currentPolicy && pendingPolicyPlayer !== null) {
-      const choice = currentPolicy.choices[choiceIndex];
-      applyEventEffects(pendingPolicyPlayer, choice.effects);
-      setEventHistory(prev => [...prev, `${players[pendingPolicyPlayer].name}: ${currentPolicy.name} - ${choice.text}`]);
+  // 开始政策投票
+  const startPolicyVoting = (policy: PolicyChoice) => {
+    setCurrentPolicy(policy);
+    setVotingInProgress(true);
+    setPlayerVotes({});
+    setVotedPlayers(new Set());
+    setShowPolicyModal(true);
+    
+    // 为每个选项初始化投票计数
+    const initialVotes: Record<number, number> = {};
+    policy.choices.forEach((_, index) => {
+      initialVotes[index] = 0;
+    });
+    setPlayerVotes(initialVotes);
+    
+    console.log(`🗳️ 开始政策投票: ${policy.name}`);
+    
+    // 开始按顺序投票，从第一个玩家开始
+    setTimeout(() => {
+      triggerNextPlayerVote();
+    }, 500);
+  };
+  
+  // 触发下一个玩家投票（不接受参数，直接使用状态中的votedPlayers）
+  const triggerNextPlayerVote = () => {
+    if (!currentPolicy) return;
+    
+    console.log(`🔍 triggerNextPlayerVote 被调用`);
+    console.log(`📋 已投票玩家:`, Array.from(votedPlayers));
+    console.log(`👥 所有玩家:`, players.map(p => `${p.id}:${p.name}(${p.type})`));
+    
+    // 按顺序查找下一个未投票的玩家: 人类玩家(0) -> 商业AI(1) -> 环保AI(2)
+    const playerOrder = [0, 1, 2]; // 投票顺序
+    
+    let foundNextPlayer = false;
+    for (const playerId of playerOrder) {
+      const hasVoted = votedPlayers.has(playerId);
+      const playerExists = !!players[playerId];
+      const player = players[playerId];
       
-      const isHuman = players[pendingPolicyPlayer].type === 'human';
+      console.log(`🔍 检查玩家 ${playerId}: 已投票=${hasVoted}, 存在=${playerExists}, 名称=${player?.name}`);
       
-      // 清理状态
-      setCurrentPolicy(null);
-      setShowPolicyModal(false);
-      setPendingPolicyPlayer(null);
-      
-      // 政策选择完成后自动进入下一回合
-      if (isHuman) {
-        setTimeout(() => {
-          nextTurn();
-        }, 500); // 给用户一点时间看到选择结果
-      } else {
-        // AI玩家立即切换到下一回合
-        setTimeout(() => {
-          nextTurn();
-        }, 1000); // 给AI一点时间显示选择结果
+      if (!hasVoted && playerExists) {
+        console.log(`✅ 找到下一个投票玩家: ${player.name} (ID: ${playerId}, 类型: ${player.type})`);
+        
+        // 设置当前投票玩家
+        setCurrentVotingPlayerId(playerId);
+        foundNextPlayer = true;
+        
+        if (player.type === 'human') {
+          console.log(`🗳️ 轮到人类玩家 ${player.name} 投票`);
+          // 人类玩家通过UI投票，不需要自动触发
+          break;
+        } else {
+          console.log(`🗳️ 轮到AI ${player.name} 投票，1秒后自动投票`);
+          // AI玩家自动投票，延迟1秒让用户看到顺序
+          setTimeout(() => {
+            handleAIVote(playerId, currentPolicy!);
+          }, 1000);
+          break;
+        }
       }
+    }
+    
+    if (!foundNextPlayer) {
+      console.log(`❌ 没有找到下一个投票玩家！`);
+    }
+    
+    console.log(`📊 当前投票状态: 已投票 ${votedPlayers.size}/${players.length} 人`);
+  };
+  
+  // 处理玩家投票（主要用于人类玩家）
+  const handlePolicyVote = (playerId: number, choiceIndex: number) => {
+    console.log(`👤 handlePolicyVote 开始: 玩家 ${playerId} (${players[playerId]?.name}) 选择 ${choiceIndex}`);
+    
+    if (!votingInProgress || votedPlayers.has(playerId)) {
+      console.log(`❌ 人类投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
+      return;
+    }
+    
+    setPlayerVotes(prev => ({
+      ...prev,
+      [choiceIndex]: (prev[choiceIndex] || 0) + 1
+    }));
+    
+    // 创建新的已投票玩家集合
+    const newVotedPlayers = new Set([...votedPlayers, playerId]);
+    setVotedPlayers(newVotedPlayers);
+    
+    // 清除当前投票玩家ID
+    setCurrentVotingPlayerId(undefined);
+    
+    console.log(`🗳️ 玩家 ${players[playerId].name} 投票给选项 ${choiceIndex}`);
+    console.log(`📈 投票后状态: 已投票 ${newVotedPlayers.size}/${players.length} 人`);
+  };
+  
+  // AI投票逻辑
+  const handleAIVote = async (playerId: number, policy: PolicyChoice) => {
+    console.log(`🤖 handleAIVote 开始: 玩家 ${playerId} (${players[playerId]?.name})`);
+    
+    if (!votingInProgress || votedPlayers.has(playerId)) {
+      console.log(`❌ AI投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
+      return;
+    }
+    
+    const player = players[playerId];
+    let choiceIndex = 0;
+    
+    try {
+      // 使用DeepSeek API进行政策选择
+      choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices);
+      console.log(`🤖 AI ${player.name} 通过DeepSeek选择: ${choiceIndex}`);
+    } catch (error) {
+      console.error('AI投票失败，使用备用逻辑:', error);
+      
+      // 备用逻辑
+      if (player.type === 'ai-income') {
+        choiceIndex = policy.choices.findIndex(choice => (choice.effects.money || 0) > 0);
+        if (choiceIndex === -1) {
+          choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
+            const currentMoney = choice.effects.money || 0;
+            const bestMoney = policy.choices[bestIdx].effects.money || 0;
+            return currentMoney > bestMoney ? idx : bestIdx;
+          }, 0);
+        }
+      } else if (player.type === 'ai-eco') {
+        choiceIndex = policy.choices.findIndex(choice => 
+          (choice.effects.eco || 0) > 0 || (choice.effects.co2 || 0) < 0
+        );
+        if (choiceIndex === -1) {
+          choiceIndex = policy.choices.reduce((bestIdx, choice, idx) => {
+            const currentEcoScore = (choice.effects.eco || 0) - (choice.effects.co2 || 0);
+            const bestEcoScore = (policy.choices[bestIdx].effects.eco || 0) - (policy.choices[bestIdx].effects.co2 || 0);
+            return currentEcoScore > bestEcoScore ? idx : bestIdx;
+          }, 0);
+        }
+      }
+    }
+    
+    // 直接处理AI投票，不通过handlePolicyVote避免递归调用
+    setPlayerVotes(prev => ({
+      ...prev,
+      [choiceIndex]: (prev[choiceIndex] || 0) + 1
+    }));
+    
+    setVotedPlayers(prev => new Set([...prev, playerId]));
+    
+    // 清除当前投票玩家ID
+    setCurrentVotingPlayerId(undefined);
+    
+    console.log(`🗳️ AI ${player.name} 投票给选项 ${choiceIndex}`);
+    console.log(`📈 AI投票完成`);
+  };
+  
+  // 完成政策投票并显示结果
+  const finalizePolicyVoting = () => {
+    if (!currentPolicy || !votingInProgress) {
+      return;
+    }
+    
+    // 计算获胜选项
+    let winningChoiceIndex = 0;
+    let maxVotes = 0;
+    
+    Object.entries(playerVotes).forEach(([choiceIndex, votes]) => {
+      if (votes > maxVotes) {
+        maxVotes = votes;
+        winningChoiceIndex = parseInt(choiceIndex);
+      }
+    });
+    
+    const winningChoice = currentPolicy.choices[winningChoiceIndex];
+    
+    // 应用政策效果到所有玩家
+    players.forEach(player => {
+      applyEventEffects(player.id, winningChoice.effects);
+    });
+    
+    // 记录事件历史
+    setEventHistory(prev => [
+      ...prev, 
+      `政策投票: ${currentPolicy.name} - ${winningChoice.text} (${maxVotes}票获胜)`
+    ]);
+    
+    // 设置结果状态
+    setPolicyResult({
+      policy: currentPolicy,
+      winningChoiceIndex,
+      votes: playerVotes
+    });
+    
+    // 清理投票状态
+    setVotingInProgress(false);
+    setShowPolicyModal(false);
+    setCurrentPolicy(null);
+    setCurrentVotingPlayerId(undefined);
+    
+    // 显示结果弹窗
+    setShowPolicyResult(true);
+    
+    console.log(`🏆 政策投票结果: 选项${winningChoiceIndex}获胜 (${maxVotes}票)`);
+    
+    // 自动关闭结果弹窗并进入下一回合（2秒后）
+    setTimeout(() => {
+      setShowPolicyResult(false);
+      setPolicyResult(null);
+      // 政策投票完成后直接进入下一回合
+      console.log('🏗️ 政策投票完成，进入下一回合');
+      nextTurn();
+    }, 2000);
+  };
+  
+  // 关闭政策结果弹窗
+  const closePolicyResult = () => {
+    setShowPolicyResult(false);
+    setPolicyResult(null);
+    
+    // 继续游戏流程
+    setTimeout(() => {
+      nextTurn();
+    }, 500);
+  };
+  
+  // 处理政策选择（兼容旧接口）
+  const handlePolicyChoice = (choiceIndex: number) => {
+    const humanPlayer = players.find(p => p.type === 'human');
+    if (humanPlayer && votingInProgress) {
+      handlePolicyVote(humanPlayer.id, choiceIndex);
     }
   };
 
@@ -1078,7 +1371,7 @@ export const useMultiPlayerGameState = () => {
   const closePolicyModal = () => {
     setCurrentPolicy(null);
     setShowPolicyModal(false);
-    setPendingPolicyPlayer(null);
+    // setPendingPolicyPlayer(null);
   };
 
   // 获取当前玩家位置
@@ -1157,6 +1450,16 @@ export const useMultiPlayerGameState = () => {
     handlePolicyChoice,
     closeEventModal,
     closePolicyModal,
+    
+    // 多人投票系统
+    votingInProgress,
+    playerVotes,
+    votedPlayers,
+    currentVotingPlayerId,
+    policyResult,
+    showPolicyResult,
+    handlePolicyVote,
+    closePolicyResult,
     
     // 交通方式选择
     showTransportModal,

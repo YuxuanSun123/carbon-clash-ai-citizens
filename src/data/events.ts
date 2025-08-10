@@ -55,6 +55,13 @@ export const randomEvents: GameEvent[] = [
     description: "环保组织抗议，迫使企业改善环境表现",
     icon: "✊",
     effects: { money: -50, co2: -20, eco: 25 }
+  },
+  {
+    id: "vehicle_choice_event",
+    name: "个人交通工具选择",
+    description: "你需要选择主要出行方式，这将影响你的移动能力和环境影响",
+    icon: "🚲",
+    effects: { money: 0, co2: 0, eco: 0 }
   }
 ];
 
@@ -144,23 +151,51 @@ export const policyChoices: PolicyChoice[] = [
     ]
   },
   {
-    id: "vehicle_choice_policy",
-    name: "个人交通工具选择",
-    description: "选择你的主要出行方式，这将影响你的移动能力和环境影响",
-    icon: "🚲",
+    id: "carbon_cap_policy",
+    name: "实施碳排放上限",
+    description: "市议会提议为所有新建工厂设定年度CO₂排放上限",
+    icon: "🏭",
     choices: [
       {
-        text: "汽车出行（快速但高污染）",
-        effects: { diceModifier: 2, co2PerTurn: 5, money: -200 }
+        text: "赞成",
+        effects: { money: -0.1, eco: 15 }
       },
       {
-        text: "自行车出行（灵活但无环保奖励）",
-        effects: { diceModifier: 1, money: -50 }
+        text: "反对",
+        effects: { money: 0, eco: -10 }
+      }
+    ]
+  },
+  {
+    id: "construction_tax_policy",
+    name: "提高城市建设税",
+    description: "为了资助绿色公共基础设施，政府计划提高所有建筑的建设税",
+    icon: "🏗️",
+    choices: [
+      {
+        text: "赞成",
+        effects: { money: -200, eco: 10 }
       },
       {
-          text: "公交出行（特殊移动模式）",
-          effects: { diceModifier: -999, moneyPerTurn: -5 }
-        }
+        text: "反对",
+        effects: { money: 0, eco: -5 }
+      }
+    ]
+  },
+  {
+    id: "highway_expansion_policy",
+    name: "高速公路扩建",
+    description: "提议扩建城市高速公路网络，以促进贸易和人口流动",
+    icon: "🛣️",
+    choices: [
+      {
+        text: "赞成",
+        effects: { moneyPerTurn: 0.15, co2PerTurn: 10 }
+      },
+      {
+        text: "反对",
+        effects: { money: 0, co2: 0, eco: 0 }
+      }
     ]
   }
 ];
