@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { pathCoordinates } from "../utils/path";
 import type { BuildingType } from "../data/buildings";
-import { buildingData } from "../data/buildings";
+import { buildingData, getBuildingLevelData, getUpgradeCost } from "../data/buildings";
 import type { GameEvent, PolicyChoice } from "../data/events";
 import { 
   randomEvents, 
@@ -10,13 +10,16 @@ import {
   getRandomEvent,
   getRandomPolicyChoice 
 } from "../data/events";
-import { getAIBuildingChoiceFromDeepSeek, getAIPolicyChoiceFromDeepSeek } from "../services/deepseekApi";
+import { getAIBuildingChoiceFromDeepSeek, getAIPolicyChoiceFromDeepSeek, getAIUpgradeChoiceFromDeepSeek } from "../services/deepseekApi";
 
 // 玩家类型
 export type PlayerType = 'human' | 'ai-income' | 'ai-eco';
 
 // 建筑信息结构
-// 移除 BuildingInfo 接口，恢复到原始的建筑存储方式
+export interface BuildingInfo {
+  type: BuildingType;
+  level: number;
+}
 
 // 玩家数据结构
 export interface Player {
@@ -27,7 +30,7 @@ export interface Player {
   money: number;
   co2: number;
   eco: number;
-  built: Record<string, BuildingType>;
+  built: Record<string, BuildingInfo>;
   passedStart: boolean;
   skipTurns: number;
   diceModifier: number; // 骰子点数修改器
@@ -339,11 +342,13 @@ export const useMultiPlayerGameState = () => {
     let totalCO2 = 0;
     let totalEco = 0;
     
-    Object.values(player.built).forEach(buildingType => {
-      const building = buildingData[buildingType];
-      totalIncome += building.income;
-      totalCO2 += building.co2PerTurn;
-      totalEco += building.ecoPerTurn;
+    Object.values(player.built).forEach(buildingInfo => {
+      const buildingLevelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
+      if (buildingLevelData) {
+        totalIncome += buildingLevelData.income;
+        totalCO2 += buildingLevelData.co2PerTurn;
+        totalEco += buildingLevelData.ecoPerTurn;
+      }
     });
     
     // 添加政策产生的持续性CO2效果
@@ -399,9 +404,9 @@ export const useMultiPlayerGameState = () => {
   
   // 计算指定玩家的总收入
   const getTotalIncomeForPlayer = (player: Player) => {
-    return Object.values(player.built).reduce((total, buildingType) => {
-      const data = buildingData[buildingType];
-      return total + data.income;
+    return Object.values(player.built).reduce((total, buildingInfo) => {
+      const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
+      return total + (levelData?.income || 0);
     }, 0);
   };
 
@@ -565,6 +570,104 @@ export const useMultiPlayerGameState = () => {
   //   }
   // };
 
+  // AI升级选择逻辑（使用DeepSeek API，带30秒超时）
+  const getAIUpgradeChoice = async (player: Player): Promise<boolean> => {
+    console.log(`🤖 开始AI升级决策 - 玩家: ${player.name}, 金钱: ${player.money}`);
+    console.log(`🔍 当前游戏阶段: ${gamePhase}, 回合数: ${turnCount}`);
+    
+    // 检查玩家的所有建筑，找出可升级的建筑
+    const upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}> = [];
+    
+    Object.entries(player.built).forEach(([posKey, buildingInfo]) => {
+      // 找到建筑对应的位置
+      const position = pathCoordinates.findIndex(coord => `${coord.row}-${coord.col}` === posKey);
+      if (position !== -1 && canUpgradeHereForPlayer(player.id, position)) {
+        const upgradeCost = getUpgradeCost(buildingInfo.type, buildingInfo.level);
+        if (upgradeCost) {
+          upgradableBuildings.push({
+            position,
+            buildingType: buildingInfo.type,
+            upgradeCost
+          });
+        }
+      }
+    });
+    
+    console.log(`🏗️ 找到 ${upgradableBuildings.length} 个可升级建筑:`, upgradableBuildings);
+    
+    // 如果没有可升级的建筑，直接返回false
+    if (upgradableBuildings.length === 0) {
+      console.log(`❌ AI玩家 ${player.name} 没有可升级的建筑`);
+      return false;
+    }
+    
+    // 创建30秒超时的Promise
+    const timeoutPromise = new Promise<boolean>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('DeepSeek API升级决策调用超时（30秒）'));
+      }, 30000); // 30秒超时
+    });
+    
+    // 创建API调用Promise
+    const apiPromise = async (): Promise<boolean> => {
+      console.log(`🌐 尝试使用DeepSeek API进行升级决策...`);
+      console.log(`🔑 API配置检查:`, {
+        hasApiKey: !!import.meta.env.VITE_DEEPSEEK_API_KEY,
+        apiUrl: import.meta.env.VITE_DEEPSEEK_API_URL,
+        model: import.meta.env.VITE_DEEPSEEK_MODEL
+      });
+      
+      // 使用DeepSeek API进行升级选择
+      const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
+      const shouldUpgrade = await getAIUpgradeChoiceFromDeepSeek(player, players, apiGamePhase, turnCount, upgradableBuildings);
+      console.log(`✅ DeepSeek API升级决策成功! 玩家 ${player.name} 决定: ${shouldUpgrade ? '升级' : '不升级'}`);
+      console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
+      return shouldUpgrade;
+    };
+    
+    try {
+      // 使用Promise.race来实现超时机制
+      const shouldUpgrade = await Promise.race([apiPromise(), timeoutPromise]);
+      return shouldUpgrade;
+    } catch (error) {
+      console.error(`❌ DeepSeek API升级决策失败或超时:`, error);
+      console.log(`🔧 切换到备用升级逻辑...`);
+      
+      // 备用升级逻辑
+      if (player.type === 'ai-income') {
+        // 商业AI：如果有工厂且钱够，优先升级工厂
+        const factoryToUpgrade = upgradableBuildings.find(b => b.buildingType === 'factory' && player.money >= b.upgradeCost);
+        if (factoryToUpgrade) {
+          console.log(`🏭 备用逻辑: 商业AI选择升级工厂`);
+          return true;
+        }
+        // 如果钱很多（超过400），升级任何建筑
+        if (player.money >= 400) {
+          console.log(`💰 备用逻辑: 商业AI资金充足，选择升级`);
+          return true;
+        }
+      } else if (player.type === 'ai-eco') {
+        // 环保AI：优先升级绿色建筑
+        const greenToUpgrade = upgradableBuildings.find(b => b.buildingType === 'green' && player.money >= b.upgradeCost);
+        if (greenToUpgrade) {
+          console.log(`🌱 备用逻辑: 环保AI选择升级绿色建筑`);
+          return true;
+        }
+        // 如果钱很多（超过350），升级非工厂建筑
+        if (player.money >= 350) {
+          const nonFactoryToUpgrade = upgradableBuildings.find(b => b.buildingType !== 'factory' && player.money >= b.upgradeCost);
+          if (nonFactoryToUpgrade) {
+            console.log(`💰 备用逻辑: 环保AI资金充足，选择升级非工厂建筑`);
+            return true;
+          }
+        }
+      }
+      
+      console.log(`❌ 备用逻辑: 不升级`);
+      return false;
+    }
+  };
+
   // AI建筑选择逻辑（使用DeepSeek API，带30秒超时）
   const getAIBuildingChoice = async (player: Player, actualPosition?: number): Promise<BuildingType | null> => {
     // 使用传入的实际位置，如果没有传入则使用玩家当前位置
@@ -696,8 +799,35 @@ export const useMultiPlayerGameState = () => {
     return true;
   };
 
-  // 检查指定玩家是否可以在其位置进行建造或升级
-  // 移除 canBuildOrUpgradeHereForPlayer 函数，恢复到原始状态
+  // 检查指定玩家是否可以在其位置升级建筑
+  const canUpgradeHereForPlayer = (playerId: number, actualPosition?: number): boolean => {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return false;
+    
+    // 使用传入的实际位置，如果没有传入则使用玩家当前位置
+    const checkPosition = actualPosition !== undefined ? actualPosition : player.position;
+    const currentPosition = pathCoordinates[checkPosition];
+    const posKey = `${currentPosition.row}-${currentPosition.col}`;
+    
+    // 检查是否有该玩家的建筑
+    const buildingInfo = player.built[posKey];
+    if (!buildingInfo) return false;
+    
+    // 检查是否已达到最大等级（限制为只能升级一次，即等级2）
+    if (buildingInfo.level >= 2) return false;
+    
+    // 检查升级锁定状态
+    const upgradeKey = `${playerId}-${posKey}`;
+    if ((window as any).upgradeInProgress && (window as any).upgradeInProgress.has(upgradeKey)) {
+      return false;
+    }
+    
+    // 检查是否有足够金钱升级
+    const upgradeCost = getUpgradeCost(buildingInfo.type, buildingInfo.level);
+    if (!upgradeCost || player.money < upgradeCost) return false;
+    
+    return true;
+  };
 
   // 在当前位置建造建筑
   const buildAtCurrentForPlayer = (playerId: number, type: BuildingType, actualPosition?: number) => {
@@ -736,7 +866,7 @@ export const useMultiPlayerGameState = () => {
         
         const updatedPlayer = {
           ...p,
-          built: { ...p.built, [posKey]: type },
+          built: { ...p.built, [posKey]: { type, level: 1 } },
           money: p.money - cost,
           co2: newCO2,
           eco: newEco
@@ -748,7 +878,79 @@ export const useMultiPlayerGameState = () => {
     });
   };
 
-  // 移除升级相关函数
+  // 升级建筑函数
+  const upgradeAtCurrentForPlayer = (playerId: number, actualPosition?: number) => {
+    if (!canUpgradeHereForPlayer(playerId, actualPosition)) return;
+    
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 使用传入的实际位置，如果没有传入则使用玩家当前位置
+    const buildingPosition = actualPosition !== undefined ? actualPosition : player.position;
+    const currentPosition = pathCoordinates[buildingPosition];
+    const posKey = `${currentPosition.row}-${currentPosition.col}`;
+    
+    const buildingInfo = player.built[posKey];
+    if (!buildingInfo) return;
+    
+    const upgradeCost = getUpgradeCost(buildingInfo.type, buildingInfo.level);
+    if (!upgradeCost) return;
+    
+    const nextLevelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level + 1);
+    if (!nextLevelData) return;
+    
+
+    
+    // 添加升级锁定机制，防止重复升级
+    const upgradeKey = `${playerId}-${posKey}`;
+    if ((window as any).upgradeInProgress && (window as any).upgradeInProgress.has(upgradeKey)) {
+      console.log(`⚠️ 升级已在进行中，跳过重复请求: ${upgradeKey}`);
+      return;
+    }
+    
+    // 初始化升级进行中的集合
+    if (!(window as any).upgradeInProgress) {
+      (window as any).upgradeInProgress = new Set();
+    }
+    
+    // 添加升级锁定
+    (window as any).upgradeInProgress.add(upgradeKey);
+    
+    setPlayers(prev => prev.map(p => {
+      if (p.id !== playerId) return p;
+      
+      // 再次检查建筑等级，确保没有被其他地方修改
+      const currentBuilding = p.built[posKey];
+      if (!currentBuilding || currentBuilding.level >= 2) {
+        return p;
+      }
+      
+      // 应用升级时的一次性效果（按照用户要求，升级效果为原建筑的一半）
+      const baseBuilding = buildingData[buildingInfo.type];
+      const upgradeCO2Effect = Math.floor(baseBuilding.co2 / 2);
+      const upgradeEcoEffect = Math.floor(baseBuilding.eco / 2);
+      
+      let newCO2 = Math.max(0, p.co2 + upgradeCO2Effect);
+      let newEco = Math.max(0, p.eco + upgradeEcoEffect);
+      
+      const updatedPlayer = {
+        ...p,
+        built: { ...p.built, [posKey]: { type: buildingInfo.type, level: 2 } }, // 直接设为最大等级
+        money: p.money - upgradeCost,
+        co2: newCO2,
+        eco: newEco
+      };
+      
+      return updatedPlayer;
+    }));
+    
+    // 延迟清除升级锁定
+    setTimeout(() => {
+      if ((window as any).upgradeInProgress) {
+        (window as any).upgradeInProgress.delete(upgradeKey);
+      }
+    }, 1000);
+  };
 
   // 移动玩家（使用当前玩家）
   const movePlayer = (steps: number) => {
@@ -791,7 +993,7 @@ export const useMultiPlayerGameState = () => {
       // 计算租金（建筑成本的30%）
       const currentPosition = pathCoordinates[newPosition];
       const posKey = `${currentPosition.row}-${currentPosition.col}`;
-      const buildingType = buildingOwner.built[posKey];
+      const buildingInfo = buildingOwner.built[posKey];
       
       const rentMap = {
         factory: 90,    // 300 * 0.3
@@ -799,11 +1001,11 @@ export const useMultiPlayerGameState = () => {
         green: 45,      // 150 * 0.3
       };
       
-      rentAmount = rentMap[buildingType] || 0;
+      rentAmount = rentMap[buildingInfo.type] || 0;
       rentPaidTo = buildingOwner.id;
       
       // 添加事件历史记录
-      setEventHistory(prev => [...prev, `${player.name} 向 ${buildingOwner.name} 支付租金 ${rentAmount} 金币（${buildingType === 'factory' ? '工厂' : buildingType === 'residential' ? '住宅' : '绿色建筑'}）`]);
+      setEventHistory(prev => [...prev, `${player.name} 向 ${buildingOwner.name} 支付租金 ${rentAmount} 金币（${buildingInfo.type === 'factory' ? '工厂' : buildingInfo.type === 'residential' ? '住宅' : '绿色建筑'}）`]);
     }
     
     setPlayers(prev => prev.map(p => {
@@ -980,10 +1182,70 @@ export const useMultiPlayerGameState = () => {
         console.log(`AI玩家 ${player.name} 选择不建造`);
       }
       
-      setTimeout(() => {
-        console.log(`AI玩家 ${player.name} 建造阶段结束，切换到下一回合`);
-        nextTurn();
-        clearBuildingLock(); // 清除建造锁
+      // 建造完成后，检查是否有可升级的建筑
+      setTimeout(async () => {
+        console.log(`AI玩家 ${player.name} 建造阶段完成，检查升级机会...`);
+        
+        try {
+          // 获取最新的玩家状态
+          const updatedPlayers = players;
+          const updatedPlayer = updatedPlayers.find(p => p.id === playerId);
+          
+          if (updatedPlayer) {
+            const shouldUpgrade = await getAIUpgradeChoice(updatedPlayer);
+            
+            if (shouldUpgrade) {
+              console.log(`AI玩家 ${updatedPlayer.name} 决定升级建筑`);
+              
+              // 找到第一个可升级的建筑并升级
+              const upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}> = [];
+              
+              Object.entries(updatedPlayer.built).forEach(([posKey, buildingInfo]) => {
+                const position = pathCoordinates.findIndex(coord => `${coord.row}-${coord.col}` === posKey);
+                if (position !== -1 && canUpgradeHereForPlayer(updatedPlayer.id, position)) {
+                  const upgradeCost = getUpgradeCost(buildingInfo.type, buildingInfo.level);
+                  if (upgradeCost) {
+                    upgradableBuildings.push({
+                      position,
+                      buildingType: buildingInfo.type,
+                      upgradeCost
+                    });
+                  }
+                }
+              });
+              
+              // 选择要升级的建筑（优先级：工厂 > 绿色建筑 > 住宅）
+              let buildingToUpgrade = null;
+              if (updatedPlayer.type === 'ai-income') {
+                // 商业AI优先升级工厂
+                buildingToUpgrade = upgradableBuildings.find(b => b.buildingType === 'factory') ||
+                                  upgradableBuildings.find(b => b.buildingType === 'residential') ||
+                                  upgradableBuildings.find(b => b.buildingType === 'green');
+              } else {
+                // 环保AI优先升级绿色建筑
+                buildingToUpgrade = upgradableBuildings.find(b => b.buildingType === 'green') ||
+                                  upgradableBuildings.find(b => b.buildingType === 'residential') ||
+                                  upgradableBuildings.find(b => b.buildingType === 'factory');
+              }
+              
+              if (buildingToUpgrade) {
+                console.log(`AI玩家 ${updatedPlayer.name} 升级位置 ${buildingToUpgrade.position} 的 ${buildingToUpgrade.buildingType} 建筑`);
+                upgradeAtCurrentForPlayer(playerId, buildingToUpgrade.position);
+              }
+            } else {
+              console.log(`AI玩家 ${updatedPlayer.name} 决定不升级建筑`);
+            }
+          }
+        } catch (error) {
+          console.error(`AI升级决策失败:`, error);
+        }
+        
+        // 延迟后切换到下一回合
+        setTimeout(() => {
+          console.log(`AI玩家 ${player.name} 回合结束，切换到下一回合`);
+          nextTurn();
+          clearBuildingLock(); // 清除建造锁
+        }, 1500);
       }, 1000);
     } catch (error) {
       console.error(`AI建造决策失败:`, error);
@@ -993,7 +1255,7 @@ export const useMultiPlayerGameState = () => {
         clearBuildingLock(); // 清除建造锁
       }, 1000);
     }
-  }, [players, getAIBuildingChoice, buildAtCurrentForPlayer, nextTurn, aiBuildingInProgress]);
+  }, [players, getAIBuildingChoice, getAIUpgradeChoice, buildAtCurrentForPlayer, nextTurn, aiBuildingInProgress, canUpgradeHereForPlayer, upgradeAtCurrentForPlayer]);
 
 
 
@@ -1388,8 +1650,8 @@ export const useMultiPlayerGameState = () => {
   const getCurrentPosition = () => pathCoordinates[currentPlayer.position];
 
   // 获取所有建筑（用于地图显示）
-  const getAllBuildings = (): Record<string, BuildingType> => {
-    const allBuildings: Record<string, BuildingType> = {};
+  const getAllBuildings = (): Record<string, BuildingInfo> => {
+    const allBuildings: Record<string, BuildingInfo> = {};
     players.forEach(player => {
       Object.entries(player.built).forEach(([key, building]) => {
         allBuildings[key] = building;
@@ -1401,26 +1663,37 @@ export const useMultiPlayerGameState = () => {
 
   // 计算总收入
   const getTotalIncome = () => {
-    return Object.values(currentPlayer.built).reduce((total, buildingType) => {
-      const data = buildingData[buildingType];
-      return total + data.income;
+    return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
+      const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
+      return total + (levelData?.income || 0);
     }, 0);
   };
 
   // 计算每回合CO2排放
   const getTotalCO2PerTurn = () => {
-    return Object.values(currentPlayer.built).reduce((total, buildingType) => {
-      const data = buildingData[buildingType];
-      return total + data.co2;
+    return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
+      const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
+      return total + (levelData?.co2 || 0);
     }, 0);
   };
 
   // 计算每回合生态效果
   const getTotalEcoPerTurn = () => {
-    return Object.values(currentPlayer.built).reduce((total, buildingType) => {
-      const data = buildingData[buildingType];
-      return total + data.eco;
+    return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
+      const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
+      return total + (levelData?.eco || 0);
     }, 0);
+  };
+
+  // 包装函数用于当前玩家
+  const canUpgradeHere = (playerId?: number) => {
+    const targetPlayerId = playerId || currentPlayer.id;
+    return canUpgradeHereForPlayer(targetPlayerId);
+  };
+
+  const upgradeAtCurrent = (playerId?: number) => {
+    const targetPlayerId = playerId || currentPlayer.id;
+    return upgradeAtCurrentForPlayer(targetPlayerId);
   };
 
   return {
@@ -1440,7 +1713,8 @@ export const useMultiPlayerGameState = () => {
     getAllBuildings,
     canBuildHere,
     buildAtCurrent,
-    // 移除升级相关导出
+    canUpgradeHere,
+    upgradeAtCurrent,
     
     // 游戏控制
     movePlayer,

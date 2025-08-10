@@ -7,7 +7,7 @@ import EventHistory from "./components/EventHistory";
 import GameEndModal from "./components/GameEndModal";
 import DebugPanel from "./components/DebugPanel";
 import { useMultiPlayerGameState } from "./hooks/useMultiPlayerGameState";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 interface MultiPlayerAppProps {
   onBackToMenu?: () => void;
@@ -25,7 +25,8 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
     getAllBuildings,
     canBuildHere,
     buildAtCurrent,
-    // 移除升级相关导入
+    canUpgradeHere,
+    upgradeAtCurrent,
     movePlayer,
     nextTurn,
     getTotalIncome,
@@ -186,7 +187,8 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 built={getAllBuildings()}
                 canBuildHere={canBuildHere}
                 buildAtCurrent={buildAtCurrent}
-                // 移除升级相关属性
+                canUpgradeHere={useCallback(() => canUpgradeHere(currentPlayer.id), [canUpgradeHere, currentPlayer.id])}
+                upgradeAtCurrent={useCallback(() => upgradeAtCurrent(currentPlayer.id), [upgradeAtCurrent, currentPlayer.id])}
                 currentEvent={showEventModal ? currentEvent : null}
                 onCloseEvent={closeEventModal}
                 players={players}

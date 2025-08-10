@@ -2,9 +2,14 @@ import React, { useState, useMemo } from "react";
 import { pathCoordinates } from "../utils/path";
 import PlayerToken from "./PlayerToken";
 import type { BuildingType } from "../data/buildings";
-import { buildingData } from "../data/buildings";
+import { buildingData, getBuildingLevelData, getUpgradeCost, getMaxBuildingLevel } from "../data/buildings";
 
 
+
+interface BuildingInfo {
+  type: BuildingType;
+  level: number;
+}
 
 interface Player {
   id: number;
@@ -14,17 +19,18 @@ interface Player {
   money: number;
   co2: number;
   eco: number;
-  built: Record<string, BuildingType>;
+  built: Record<string, BuildingInfo>;
   passedStart: boolean;
   skipTurns: number;
 }
 
 interface GameMapProps {
   playerIndex: number; // 当前玩家的位置
-  built: Record<string, BuildingType>;
+  built: Record<string, BuildingInfo>;
   canBuildHere: () => boolean;
   buildAtCurrent: (type: BuildingType) => void;
-  // 移除升级相关接口
+  canUpgradeHere: () => boolean;
+  upgradeAtCurrent: () => void;
   currentEvent?: {
     id: string;
     name: string;
@@ -87,10 +93,11 @@ const DEFAULT_COLORS = {
   textColor: 'text-white'
 };
 
-const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, buildAtCurrent, currentEvent, onCloseEvent, players, currentPlayerId, getBuildingOwner }) => {
+const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, buildAtCurrent, canUpgradeHere, upgradeAtCurrent, currentEvent, onCloseEvent, players, currentPlayerId, getBuildingOwner }) => {
   const boardSize = 11; // 11x11 网格，适合大富翁循环布局
   const totalCells = 40; // 大富翁标准40格
   const [showBuildMenu, setShowBuildMenu] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   // 获取玩家颜色配置
   const getPlayerColors = (playerId: number) => {
@@ -133,23 +140,64 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
    * 使用 React.memo 进行性能优化，避免不必要的重渲染
    * 统一管理建筑的视觉样式和颜色主题
    */
-  const BuildingDisplay = React.memo(({ building, owner }: { index: number, building: BuildingType, owner: any }) => {
+  const BuildingDisplay = React.memo(({ index, building, owner }: { index: number, building: BuildingInfo, owner: any }) => {
     const colors = owner ? getPlayerColors(owner.id) : DEFAULT_COLORS;
     const ringClass = colors.ring ? `ring-2 ${colors.ring}` : '';
-    const icon = buildingIcons[building] || '🏗️';
+    
+    // 获取建筑等级数据
+    const buildingLevelData = getBuildingLevelData(building.type, building.level);
+    const icon = buildingLevelData?.icon || buildingIcons[building.type] || '🏗️';
+    const maxLevel = getMaxBuildingLevel(building.type);
+    
+    // 检查是否可以升级
+    const currentHumanPlayer = players ? players.find(p => p.type === 'human') : null;
+    const isCurrentPlayerHere = currentHumanPlayer ? currentHumanPlayer.position === index : false;
+    const isOwner = owner && currentHumanPlayer && owner.id === currentHumanPlayer.id;
+    const canUpgrade = isCurrentPlayerHere && isOwner && canUpgradeHere && canUpgradeHere();
     
     return (
       <div className="absolute top-1 right-1 sm:top-2 sm:right-2 md:top-3 md:right-3 z-50">
-        <div className={`backdrop-blur-md rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-2 md:py-3 border-2 sm:border-3 shadow-2xl ${colors.border} ${colors.bg} ${ringClass}`}>
+        <div 
+          className={`backdrop-blur-md rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-2 md:py-3 border-2 sm:border-3 shadow-2xl ${colors.border} ${colors.bg} ${ringClass} ${
+            canUpgrade ? 'cursor-pointer hover:scale-110 hover:ring-4 hover:ring-yellow-400/90 transition-all duration-300' : ''
+          }`}
+          onClick={() => {
+            if (canUpgrade && upgradeAtCurrent) {
+              upgradeAtCurrent();
+            }
+          }}
+        >
           <div className="flex flex-col items-center gap-1">
             <span className="text-xs sm:text-sm md:text-lg lg:text-xl xl:text-2xl font-bold text-white drop-shadow-lg">
               {icon}
             </span>
+            {/* 建筑等级显示 */}
+            <div className="flex items-center gap-1">
+              <div className="bg-blue-600/80 text-white text-xs font-bold rounded px-1 py-0.5">
+                Lv.{building.level}
+              </div>
+              {building.level < maxLevel && (
+                <div className="text-xs text-yellow-300">⭐</div>
+              )}
+            </div>
             {owner && (
               <div className={`text-xs font-bold rounded px-1 py-0.5 whitespace-nowrap ${colors.textColor} ${colors.textBg}`}>
                 {owner.name.length > 4 ? owner.name.substring(0, 4) + '...' : owner.name}
               </div>
             )}
+            {/* 升级提示 */}
+            {canUpgrade && (() => {
+              const upgradeCost = getUpgradeCost(building.type, building.level);
+              return upgradeCost ? (
+                <div className="text-xs text-yellow-300 animate-pulse font-bold">
+                  🔧升级 ${upgradeCost}
+                </div>
+              ) : (
+                <div className="text-xs text-yellow-300 animate-pulse font-bold">
+                  🔧已满级
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -282,11 +330,28 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
             ? getPlayerBorderColor(finalBuildingOwner.id)
             : undefined
         }}
-        onClick={() => {
-          if (canBuild) {
-            setShowBuildMenu(true);
-          }
-        }}
+        onClick={async () => {
+            if (canBuild) {
+              setShowBuildMenu(true);
+            } else if (hasBuilding && finalBuildingOwner && currentHumanPlayer && 
+                        finalBuildingOwner.id === currentHumanPlayer.id && 
+                        isCurrentPlayerHere && canUpgradeHere && canUpgradeHere() && !isUpgrading) {
+               // 如果有建筑且是当前玩家的建筑且可以升级，直接升级
+               // 添加防重复点击检查
+               const building = hasBuilding;
+               if (building && building.level < 2) {
+                 setIsUpgrading(true);
+                 try {
+                   upgradeAtCurrent();
+                 } finally {
+                   // 延迟重置状态，防止快速连续点击
+                   setTimeout(() => {
+                     setIsUpgrading(false);
+                   }, 500);
+                 }
+               }
+            }
+          }}
       >
         {/* 3D效果背景 */}
         <div className={`absolute inset-1 sm:inset-2 ${isCorner ? 'rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl' : 'rounded-sm sm:rounded-md md:rounded-lg lg:rounded-xl'} bg-gradient-to-br from-white/10 to-black/30 backdrop-blur-sm`} />

@@ -41,38 +41,25 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
         name: "小型工厂",
         icon: "🏭",
         cost: 300,
-        upgradeCost: 400,
+        upgradeCost: 150,
         co2: 80,
         eco: -10,
         income: 120,
         co2PerTurn: 15,
         ecoPerTurn: -2,
-        maxLevel: 3
+        maxLevel: 2
       },
       {
         level: 2,
-        name: "中型工厂",
+        name: "大型工厂",
         icon: "🏭",
         cost: 400,
-        upgradeCost: 600,
-        co2: 60, // 升级时的增量效果
+        co2: 60,
         eco: -5,
         income: 180,
         co2PerTurn: 20,
         ecoPerTurn: -3,
-        maxLevel: 3
-      },
-      {
-        level: 3,
-        name: "大型工厂",
-        icon: "🏭",
-        cost: 600,
-        co2: 40,
-        eco: 0,
-        income: 250,
-        co2PerTurn: 25,
-        ecoPerTurn: -2, // 高级工厂环保技术更好
-        maxLevel: 3
+        maxLevel: 2
       }
     ]
   },
@@ -83,38 +70,25 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
         name: "普通住宅",
         icon: "🏘️",
         cost: 200,
-        upgradeCost: 300,
+        upgradeCost: 100,
         co2: 30,
         eco: 0,
         income: 80,
         co2PerTurn: 8,
         ecoPerTurn: 1,
-        maxLevel: 3
+        maxLevel: 2
       },
       {
         level: 2,
-        name: "高档住宅",
+        name: "豪华住宅",
         icon: "🏘️",
         cost: 300,
-        upgradeCost: 500,
         co2: 20,
         eco: 5,
         income: 140,
         co2PerTurn: 10,
         ecoPerTurn: 2,
-        maxLevel: 3
-      },
-      {
-        level: 3,
-        name: "豪华住宅",
-        icon: "🏘️",
-        cost: 500,
-        co2: 10,
-        eco: 10,
-        income: 220,
-        co2PerTurn: 12,
-        ecoPerTurn: 3,
-        maxLevel: 3
+        maxLevel: 2
       }
     ]
   },
@@ -125,38 +99,25 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
         name: "小型绿建",
         icon: "🌳",
         cost: 150,
-        upgradeCost: 250,
+        upgradeCost: 75,
         co2: -20,
         eco: 30,
         income: 60,
         co2PerTurn: -5,
         ecoPerTurn: 8,
-        maxLevel: 3
+        maxLevel: 2
       },
       {
         level: 2,
-        name: "生态园区",
+        name: "绿色科技园",
         icon: "🌳",
         cost: 250,
-        upgradeCost: 400,
         co2: -30,
         eco: 40,
         income: 100,
         co2PerTurn: -8,
         ecoPerTurn: 12,
-        maxLevel: 3
-      },
-      {
-        level: 3,
-        name: "绿色科技园",
-        icon: "🌳",
-        cost: 400,
-        co2: -40,
-        eco: 50,
-        income: 160,
-        co2PerTurn: -12,
-        ecoPerTurn: 18,
-        maxLevel: 3
+        maxLevel: 2
       }
     ]
   }

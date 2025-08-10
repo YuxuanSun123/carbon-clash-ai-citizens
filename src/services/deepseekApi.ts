@@ -185,6 +185,79 @@ function parseAIResponse(response: string): BuildingType | null {
   return null;
 }
 
+// AI升级决策函数
+export async function getAIUpgradeChoiceFromDeepSeek(
+  player: Player,
+  allPlayers: Player[],
+  gamePhase: 'rolling' | 'building' | 'waiting',
+  turnCount: number,
+  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
+): Promise<boolean> {
+  console.log(`🔍 DeepSeek API: 开始为玩家 ${player.name} 生成升级决策`);
+  console.log(`📍 玩家状态: 位置=${player.position}, 金钱=${player.money}, CO2=${player.co2}, 生态=${player.eco}`);
+  console.log(`🏗️ 可升级建筑:`, upgradableBuildings);
+  
+  try {
+    // 如果没有可升级的建筑，直接返回false
+    if (upgradableBuildings.length === 0) {
+      console.log(`❌ DeepSeek API: 没有可升级的建筑`);
+      return false;
+    }
+    
+    // 构建升级决策的系统提示词
+    const systemPrompt = buildUpgradeSystemPrompt(player.type);
+    
+    // 构建用户消息
+    const userMessage = buildUpgradeUserMessage(player, allPlayers, gamePhase, turnCount, upgradableBuildings);
+    
+    console.log(`📝 升级决策系统提示词:`, systemPrompt.substring(0, 200) + '...');
+    console.log(`📝 升级决策用户消息:`, userMessage.substring(0, 200) + '...');
+    
+    const requestBody: DeepSeekRequest = {
+      model: DEEPSEEK_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      temperature: 0.7,
+      max_tokens: 100
+    };
+    
+    console.log(`🌐 发送升级决策请求到 DeepSeek API...`);
+    
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ DeepSeek API升级决策请求失败:`, response.status, errorText);
+      throw new Error(`API请求失败: ${response.status}`);
+    }
+    
+    const data: DeepSeekResponse = await response.json();
+    const aiResponse = data.choices[0]?.message?.content?.trim();
+    
+    console.log(`🤖 DeepSeek API升级决策原始响应:`, aiResponse);
+    
+    // 解析AI响应
+    const shouldUpgrade = parseUpgradeResponse(aiResponse);
+    
+    console.log(`✅ DeepSeek API升级决策成功! 玩家 ${player.name} 决定: ${shouldUpgrade ? '升级' : '不升级'}`);
+    return shouldUpgrade;
+    
+  } catch (error) {
+    console.error(`❌ DeepSeek API升级决策失败:`, error);
+    // 返回备用逻辑结果
+    return getFallbackUpgradeChoice(player, upgradableBuildings);
+  }
+}
+
 // 主要的AI决策函数
 export async function getAIBuildingChoiceFromDeepSeek(
   player: Player,
@@ -284,6 +357,160 @@ export async function getAIBuildingChoiceFromDeepSeek(
     // 降级到原有的简单AI逻辑
     return getFallbackAIChoice(player);
   }
+}
+
+// 构建升级决策的系统提示词
+function buildUpgradeSystemPrompt(playerType: PlayerType): string {
+  const basePrompt = `你是一个智能游戏AI，正在玩一个类似大富翁的城市建设游戏。
+
+游戏规则：
+- 玩家可以升级自己的建筑来获得更好的效果
+- 升级需要花费150金币，升级后建筑效果会增强
+- 升级后的建筑会产生更多收入和环境影响
+- 每个建筑只能升级一次（从等级1升级到等级2）
+- 游戏目标是平衡经济发展和环境保护
+
+你的角色特点：`;
+
+  if (playerType === 'ai-income') {
+    return basePrompt + `
+- 你是商业AI，优先追求经济利益最大化
+- 偏好升级能带来高收入的建筑（如工厂）
+- 在经济效益和环境保护之间更倾向于经济
+- 但也要考虑长期可持续发展和资金管理
+
+请根据当前游戏状态决定是否升级建筑，只返回yes（升级）或no（不升级）。`;
+  } else {
+    return basePrompt + `
+- 你是环保AI，优先追求环境保护和可持续发展
+- 偏好升级绿色建筑，谨慎升级高污染建筑
+- 在经济效益和环境保护之间更倾向于环保
+- 但也要保证基本的经济发展需求
+
+请根据当前游戏状态决定是否升级建筑，只返回yes（升级）或no（不升级）。`;
+  }
+}
+
+// 构建升级决策的用户消息
+function buildUpgradeUserMessage(
+  player: Player,
+  allPlayers: Player[],
+  gamePhase: 'rolling' | 'building' | 'waiting',
+  turnCount: number,
+  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
+): string {
+  const currentPosition = pathCoordinates[player.position];
+  
+  let message = `当前游戏状态：
+`;
+  message += `回合数：${turnCount}
+`;
+  message += `游戏阶段：${gamePhase}
+
+`;
+  
+  message += `你的状态：
+`;
+  message += `- 金钱：${player.money}
+`;
+  message += `- CO2排放：${player.co2}
+`;
+  message += `- 生态指数：${player.eco}
+`;
+  message += `- 当前位置：第${player.position}格 (${currentPosition.row}, ${currentPosition.col})
+
+`;
+  
+  message += `可升级的建筑：
+`;
+  upgradableBuildings.forEach((building, index) => {
+    const pos = pathCoordinates[building.position];
+    message += `${index + 1}. 位置${building.position} (${pos.row}, ${pos.col}) - ${building.buildingType}建筑，升级费用：${building.upgradeCost}金币
+`;
+  });
+  
+  message += `
+其他玩家状态：
+`;
+  allPlayers.filter(p => p.id !== player.id).forEach(p => {
+    message += `- ${p.name}：金钱${p.money}，CO2=${p.co2}，生态=${p.eco}
+`;
+  });
+  
+  message += `
+请决定是否升级建筑（只返回yes或no）：`;
+  
+  return message;
+}
+
+// 解析升级响应
+function parseUpgradeResponse(response: string): boolean {
+  if (!response) return false;
+  
+  const lowerResponse = response.toLowerCase().trim();
+  
+  // 检查明确的yes/no回答
+  if (lowerResponse.includes('yes') || lowerResponse.includes('升级')) {
+    return true;
+  }
+  if (lowerResponse.includes('no') || lowerResponse.includes('不升级')) {
+    return false;
+  }
+  
+  // 默认不升级
+  return false;
+}
+
+// 备用升级逻辑
+function getFallbackUpgradeChoice(
+  player: Player,
+  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
+): boolean {
+  console.log(`🔧 使用备用升级逻辑 - 玩家: ${player.name}`);
+  
+  // 如果没有可升级建筑，返回false
+  if (upgradableBuildings.length === 0) {
+    return false;
+  }
+  
+  // 检查是否有足够的钱升级
+  const canAffordUpgrade = upgradableBuildings.some(building => player.money >= building.upgradeCost);
+  if (!canAffordUpgrade) {
+    console.log(`💰 备用逻辑: 金钱不足，无法升级`);
+    return false;
+  }
+  
+  if (player.type === 'ai-income') {
+    // 商业AI：如果有工厂且钱够，优先升级工厂
+    const factoryToUpgrade = upgradableBuildings.find(b => b.buildingType === 'factory' && player.money >= b.upgradeCost);
+    if (factoryToUpgrade) {
+      console.log(`🏭 备用逻辑: 商业AI选择升级工厂`);
+      return true;
+    }
+    // 如果钱很多（超过400），升级任何建筑
+    if (player.money >= 400) {
+      console.log(`💰 备用逻辑: 商业AI资金充足，选择升级`);
+      return true;
+    }
+  } else if (player.type === 'ai-eco') {
+    // 环保AI：优先升级绿色建筑
+    const greenToUpgrade = upgradableBuildings.find(b => b.buildingType === 'green' && player.money >= b.upgradeCost);
+    if (greenToUpgrade) {
+      console.log(`🌱 备用逻辑: 环保AI选择升级绿色建筑`);
+      return true;
+    }
+    // 如果钱很多（超过350），升级非工厂建筑
+    if (player.money >= 350) {
+      const nonFactoryToUpgrade = upgradableBuildings.find(b => b.buildingType !== 'factory' && player.money >= b.upgradeCost);
+      if (nonFactoryToUpgrade) {
+        console.log(`💰 备用逻辑: 环保AI资金充足，选择升级非工厂建筑`);
+        return true;
+      }
+    }
+  }
+  
+  console.log(`❌ 备用逻辑: 不升级`);
+  return false;
 }
 
 // 备用AI逻辑（原有的简单逻辑）
