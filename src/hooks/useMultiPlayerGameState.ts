@@ -1183,7 +1183,13 @@ export const useMultiPlayerGameState = () => {
   
   // 完成政策投票并显示结果
   const finalizePolicyVoting = () => {
+    console.log(`🔍 finalizePolicyVoting 开始执行`);
+    console.log(`🔍 currentPolicy:`, currentPolicy);
+    console.log(`🔍 votingInProgress:`, votingInProgress);
+    console.log(`🔍 playerVotes:`, playerVotes);
+    
     if (!currentPolicy || !votingInProgress) {
+      console.log(`❌ finalizePolicyVoting 提前返回: currentPolicy=${!!currentPolicy}, votingInProgress=${votingInProgress}`);
       return;
     }
     
@@ -1192,11 +1198,14 @@ export const useMultiPlayerGameState = () => {
     let maxVotes = 0;
     
     Object.entries(playerVotes).forEach(([choiceIndex, votes]) => {
+      console.log(`🔍 选项 ${choiceIndex}: ${votes} 票`);
       if (votes > maxVotes) {
         maxVotes = votes;
         winningChoiceIndex = parseInt(choiceIndex);
       }
     });
+    
+    console.log(`🏆 获胜选项: ${winningChoiceIndex} (${maxVotes}票)`);
     
     const winningChoice = currentPolicy.choices[winningChoiceIndex];
     
@@ -1212,11 +1221,13 @@ export const useMultiPlayerGameState = () => {
     ]);
     
     // 设置结果状态
-    setPolicyResult({
+    const resultData = {
       policy: currentPolicy,
       winningChoiceIndex,
       votes: playerVotes
-    });
+    };
+    console.log(`🔍 设置 policyResult:`, resultData);
+    setPolicyResult(resultData);
     
     // 清理投票状态
     setVotingInProgress(false);
@@ -1225,18 +1236,12 @@ export const useMultiPlayerGameState = () => {
     setCurrentVotingPlayerId(undefined);
     
     // 显示结果弹窗
+    console.log(`🔍 设置 showPolicyResult 为 true`);
     setShowPolicyResult(true);
     
     console.log(`🏆 政策投票结果: 选项${winningChoiceIndex}获胜 (${maxVotes}票)`);
     
-    // 自动关闭结果弹窗并进入下一回合（2秒后）
-    setTimeout(() => {
-      setShowPolicyResult(false);
-      setPolicyResult(null);
-      // 政策投票完成后直接进入下一回合
-      console.log('🏗️ 政策投票完成，进入下一回合');
-      nextTurn();
-    }, 2000);
+    // 移除自动关闭，让用户手动关闭结果弹窗
   };
   
   // 关闭政策结果弹窗

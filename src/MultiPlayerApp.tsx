@@ -410,15 +410,18 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
       )}
       
       {/* 政策投票结果弹窗 */}
-      {showPolicyResult && policyResult && (
-        <PolicyResultModal
-          policy={policyResult.policy}
-          winningChoiceIndex={policyResult.winningChoiceIndex}
-          votes={policyResult.votes}
-          totalPlayers={players.length}
-          onClose={closePolicyResult}
-        />
-      )}
+      {(() => {
+        console.log(`🔍 MultiPlayerApp 渲染检查: showPolicyResult=${showPolicyResult}, policyResult=`, policyResult);
+        return showPolicyResult && policyResult && (
+          <PolicyResultModal
+            policy={policyResult.policy}
+            winningChoiceIndex={policyResult.winningChoiceIndex}
+            votes={policyResult.votes}
+            totalPlayers={players.length}
+            onClose={closePolicyResult}
+          />
+        );
+      })()}
       
       {/* 交通方式选择弹窗 */}
       {showTransportModal && (

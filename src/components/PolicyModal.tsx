@@ -76,36 +76,45 @@ const PolicyModal = ({
       <div className="bg-gradient-to-br from-slate-800 via-purple-900 to-slate-800 p-6 rounded-2xl shadow-2xl max-w-lg mx-4 border border-white/20 backdrop-blur-md">
         <div className="text-center mb-6">
           <div className="text-5xl mb-3 animate-pulse">{policy.icon}</div>
-          <h2 className="text-2xl font-bold text-white mb-2">{policy.name}</h2>
-          <p className="text-gray-300 text-sm leading-relaxed">{policy.description}</p>
+          <h2 className="text-2xl font-bold text-white mb-2" style={{ color: '#ffffff' }}>{policy.name}</h2>
+          <p className="text-gray-300 text-sm leading-relaxed" style={{ color: '#d1d5db' }}>{policy.description}</p>
           
           {/* 投票进度显示 */}
           {votingInProgress && (
-            <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-400/30">
-              <div className="text-blue-300 text-sm font-medium mb-2">
+            <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-400/30" style={{
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderColor: 'rgba(96, 165, 250, 0.4)'
+            }}>
+              <div className="text-blue-300 text-sm font-medium mb-2" style={{ color: '#93c5fd' }}>
                 🗳️ 多人投票进行中
               </div>
-              <div className="text-blue-200 text-xs">
+              <div className="text-blue-200 text-xs" style={{ color: '#bfdbfe' }}>
                 已投票: {votedPlayers.size} / {totalPlayers} 人
               </div>
-              <div className="w-full bg-blue-800 rounded-full h-2 mt-2">
+              <div className="w-full bg-blue-800 rounded-full h-2 mt-2" style={{ backgroundColor: '#1e40af' }}>
                 <div 
                   className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(votedPlayers.size / totalPlayers) * 100}%` }}
+                  style={{ 
+                    width: `${(votedPlayers.size / totalPlayers) * 100}%`,
+                    backgroundColor: '#60a5fa'
+                  }}
                 ></div>
               </div>
               
               {/* 显示当前投票玩家 */}
               {currentVotingPlayerId !== undefined && (
-                <div className="mt-2 p-2 bg-yellow-900/30 rounded border border-yellow-400/30">
-                  <div className="text-yellow-300 text-xs font-medium">
+                <div className="mt-2 p-2 bg-yellow-900/30 rounded border border-yellow-400/30" style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                  borderColor: 'rgba(251, 191, 36, 0.4)'
+                }}>
+                  <div className="text-yellow-300 text-xs font-medium" style={{ color: '#fcd34d' }}>
                     ⏳ 轮到投票: {players.find(p => p.id === currentVotingPlayerId)?.name || `玩家${currentVotingPlayerId}`}
                   </div>
                 </div>
               )}
               
               {votedPlayers.has(currentPlayerId) && (
-                <div className="text-green-300 text-xs mt-2">
+                <div className="text-green-300 text-xs mt-2" style={{ color: '#86efac' }}>
                   ✅ 您已完成投票
                 </div>
               )}
@@ -130,14 +139,14 @@ const PolicyModal = ({
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium text-white">{choice.text}</div>
+                  <div className="font-medium text-white" style={{ color: '#000000' }}>{choice.text}</div>
                   {votingInProgress && (
-                    <div className="text-yellow-300 font-bold text-sm">
+                    <div className="text-yellow-300 font-bold text-sm" style={{ color: '#b45309' }}>
                       🗳️ {voteCount}
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-cyan-300">
+                <div className="text-sm text-cyan-300" style={{ color: '#0891b2' }}>
                   效果: {getEffectText(choice.effects)}
                 </div>
               </button>
@@ -148,6 +157,7 @@ const PolicyModal = ({
         <button
           onClick={onClose}
           className="w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+          style={{ backgroundColor: '#4b5563', color: '#ffffff' }}
         >
           跳过选择
         </button>
