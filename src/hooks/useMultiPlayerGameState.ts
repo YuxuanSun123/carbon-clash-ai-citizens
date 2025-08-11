@@ -410,37 +410,37 @@ export const useMultiPlayerGameState = () => {
     }, 0);
   };
 
-  // 计算基于CO2排放量的动态税收
+  // Calculate dynamic tax based on CO2 emissions
   const calculateDynamicTaxEvent = (playerId: number): GameEvent => {
     const player = players[playerId];
-    const baseTax = 100; // 基础税收
-    const co2Tax = Math.floor(player.co2 * 1.5); // 每点CO2排放收取1.5金币税收
+    const baseTax = 100; // Base tax
+    const co2Tax = Math.floor(player.co2 * 1.5); // 1.5 coins tax per CO2 emission point
     const totalTax = baseTax + co2Tax;
     
-    // 根据CO2排放量选择不同的税收事件
+    // Choose different tax events based on CO2 emissions
     if (player.co2 <= 50) {
       return {
         id: "low_emission_tax",
-        name: "低排放税收",
-        description: `基础税收 ${baseTax} + CO2税收 ${co2Tax} = ${totalTax} 金币`,
+        name: "Low Emission Tax",
+        description: `Base tax ${baseTax} + CO2 tax ${co2Tax} = ${totalTax} coins`,
         icon: "💰",
         effects: { money: -totalTax }
       };
     } else if (player.co2 <= 150) {
       return {
         id: "medium_emission_tax",
-        name: "中等排放税收",
-        description: `基础税收 ${baseTax} + CO2税收 ${co2Tax} = ${totalTax} 金币`,
+        name: "Medium Emission Tax",
+        description: `Base tax ${baseTax} + CO2 tax ${co2Tax} = ${totalTax} coins`,
         icon: "🏭",
         effects: { money: -totalTax }
       };
     } else {
       return {
         id: "high_emission_penalty",
-        name: "高排放重税",
-        description: `基础税收 ${baseTax} + CO2重税 ${co2Tax} = ${totalTax} 金币`,
+        name: "High Emission Heavy Tax",
+        description: `Base tax ${baseTax} + CO2 heavy tax ${co2Tax} = ${totalTax} coins`,
         icon: "💀",
-        effects: { money: -totalTax, co2: -5 } // 高排放还会强制减少5点CO2
+        effects: { money: -totalTax, co2: -5 } // High emissions also force a reduction of 5 CO2 points
       };
     }
   };
@@ -454,7 +454,7 @@ export const useMultiPlayerGameState = () => {
         event = getRandomEvent(randomEvents);
         break;
       case 'tax':
-        event = calculateDynamicTaxEvent(playerId); // 使用动态税收计算
+        event = calculateDynamicTaxEvent(playerId); // Use dynamic tax calculation
         break;
       case 'trap':
         event = getRandomEvent(trapEvents);
