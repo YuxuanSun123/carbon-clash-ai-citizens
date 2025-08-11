@@ -190,11 +190,11 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
               const upgradeCost = getUpgradeCost(building.type, building.level);
               return upgradeCost ? (
                 <div className="text-xs text-yellow-300 animate-pulse font-bold">
-                  🔧升级 ${upgradeCost}
+                  🔧Upgrade ${upgradeCost}
                 </div>
               ) : (
                 <div className="text-xs text-yellow-300 animate-pulse font-bold">
-                  🔧已满级
+                  🔧Max Level
                 </div>
               );
             })()}
@@ -416,9 +416,9 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                         player.type === 'ai-income' ? 'bg-yellow-500' : 
                         player.type === 'ai-eco' ? 'bg-green-500' : 'bg-gray-500'
                       } text-white shadow-lg whitespace-nowrap`}>
-                        {player.type === 'human' ? '人类' : 
-                         player.type === 'ai-income' ? '商业AI' : 
-                         player.type === 'ai-eco' ? '环保AI' : '未知'}
+                        {player.type === 'human' ? 'Human' : 
+                         player.type === 'ai-income' ? 'Business AI' : 
+                         player.type === 'ai-eco' ? 'Eco AI' : 'Unknown'}
                       </div>
                     )}
                   </div>
@@ -466,7 +466,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
       parts.push(`🌱 ${effects.eco > 0 ? '+' : ''}${effects.eco}`);
     }
     if (effects.skipTurns) {
-      parts.push(`⏸️ 跳过 ${effects.skipTurns} 回合`);
+      parts.push(`⏸️ Skip ${effects.skipTurns} turns`);
     }
     
     return parts.join(' | ');
@@ -483,7 +483,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
               <>
                 <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3 md:mb-4 drop-shadow-2xl">🏗️</div>
                 <h3 className="text-sm sm:text-lg md:text-xl font-bold text-white text-center mb-2 sm:mb-3 md:mb-4 drop-shadow-lg">
-                  选择建造类型
+                  Select Building Type
                 </h3>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4 md:mb-6 max-h-48 sm:max-h-64 md:max-h-80 overflow-y-auto pointer-events-auto">
                   {Object.entries(buildingData).map(([type, data]) => (
@@ -502,7 +502,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                       <div className="text-xs text-yellow-300 mb-1">💰 {data.cost}</div>
                       <div className="text-xs text-gray-300">
                         <div>🏭 {data.co2} 🌱 {data.eco}</div>
-                        <div>📈 +{data.income}/回合</div>
+                        <div>📈 +{data.income}/turn</div>
                       </div>
                     </button>
                   ))}
@@ -514,7 +514,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                   }}
                   className="pointer-events-auto px-3 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 font-semibold text-xs sm:text-sm md:text-base shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  取消
+                  Cancel
                 </button>
               </>
             )}
@@ -538,7 +538,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                     onClick={onCloseEvent}
                     className="pointer-events-auto px-3 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 font-semibold text-xs sm:text-sm md:text-base shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
-                    确定
+                    OK
                   </button>
                 )}
               </>
@@ -551,11 +551,11 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                   Carbon Clash
                 </h2>
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-100 text-center leading-relaxed font-medium">
-                  环保策略棋盘游戏
+                  Environmental Strategy Board Game
                 </p>
                 <div className="mt-2 sm:mt-4 md:mt-6 lg:mt-8 flex items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-200 bg-black/40 rounded-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-1 sm:py-2 md:py-3 border border-white/20">
                   <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">🎯</span>
-                  <span className="font-semibold">大富翁模式</span>
+                  <span className="font-semibold">Monopoly Mode</span>
                 </div>
               </>
             )}

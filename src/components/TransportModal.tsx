@@ -22,29 +22,29 @@ interface TransportModalProps {
 const transportChoices: TransportChoice[] = [
   {
     id: "walking",
-    name: "步行出行",
-    description: "最基础的出行方式，无额外效果",
+    name: "Walking",
+    description: "Basic transportation method with no additional effects",
     icon: "🚶",
     effects: { diceModifier: 0 }
   },
   {
     id: "bicycle",
-    name: "自行车出行",
-    description: "灵活的出行方式，稍微提升移动能力",
+    name: "Bicycle",
+    description: "Flexible transportation with slightly enhanced mobility",
     icon: "🚲",
     effects: { diceModifier: 1, moneyPerTurn: -5 }
   },
   {
     id: "car",
-    name: "汽车出行",
-    description: "快速但高污染的出行方式",
+    name: "Car",
+    description: "Fast but high-pollution transportation method",
     icon: "🚗",
     effects: { diceModifier: 2, co2PerTurn: 5, moneyPerTurn: -10 }
   },
   {
     id: "bus",
-    name: "公交出行",
-    description: "特殊移动模式，只能移动奇数步数",
+    name: "Public Transit",
+    description: "Special movement mode, can only move odd number of steps",
     icon: "🚌",
     effects: { diceModifier: -999, moneyPerTurn: -3 }
   }
@@ -72,8 +72,8 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose, onChoo
       <div className="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-800 p-6 rounded-2xl shadow-2xl max-w-2xl mx-4 border border-white/20 backdrop-blur-md">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">🅿️</div>
-          <h2 className="text-2xl font-bold text-white mb-2">免费停车场</h2>
-          <p className="text-gray-300">{playerName}，选择你的出行方式</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Free Parking</h2>
+      <p className="text-gray-300">{playerName}, choose your transportation method</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -92,27 +92,27 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose, onChoo
               
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">移动能力:</span>
+                  <span className="text-gray-400">Movement:</span>
                   <span className={`font-semibold ${
                     choice.effects.diceModifier > 0 ? 'text-green-400' :
                     choice.effects.diceModifier < 0 ? 'text-blue-400' : 'text-gray-300'
                   }`}>
-                    {choice.effects.diceModifier === -999 ? '特殊模式' :
-                     choice.effects.diceModifier > 0 ? `+${choice.effects.diceModifier}` :
-                     choice.effects.diceModifier === 0 ? '标准' : choice.effects.diceModifier}
+                    {choice.effects.diceModifier === -999 ? 'Special Mode' :
+            choice.effects.diceModifier > 0 ? `+${choice.effects.diceModifier}` :
+            choice.effects.diceModifier === 0 ? 'Standard' : choice.effects.diceModifier}
                   </span>
                 </div>
                 
                 {choice.effects.co2PerTurn && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">每回合CO2:</span>
+                    <span className="text-gray-400">CO2 per turn:</span>
                     <span className="text-red-400 font-semibold">+{choice.effects.co2PerTurn}</span>
                   </div>
                 )}
                 
                 {choice.effects.moneyPerTurn && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">每回合费用:</span>
+                    <span className="text-gray-400">Cost per turn:</span>
                     <span className="text-yellow-400 font-semibold">{choice.effects.moneyPerTurn}</span>
                   </div>
                 )}
@@ -126,7 +126,7 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose, onChoo
             onClick={onClose}
             className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
           >
-            取消
+            Cancel
           </button>
         </div>
       </div>

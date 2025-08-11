@@ -16,21 +16,21 @@ export const useGameState = () => {
   const [playerIndex, setPlayerIndex] = useState(0);
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
 
-  // 玩家资源状态
+  // Player resource state
   const [money, setMoney] = useState(1000);
   const [co2, setCO2] = useState(0);
   const [eco, setEco] = useState(0);
 
-  // 记录已建造格子
+  // Record built cells
   const [built, setBuilt] = useState<Record<string, BuildingType>>({});
 
-  // 起点是否已经第一次经过
+  // Whether the starting point has been passed for the first time
   const [passedStart, setPassedStart] = useState(false);
 
-  // 回合系统
+  // Turn system
   const [turnCount, setTurnCount] = useState(0);
 
-  // 事件系统状态
+  // Event system state
   const [currentEvent, setCurrentEvent] = useState<GameEvent | null>(null);
   const [currentPolicy, setCurrentPolicy] = useState<PolicyChoice | null>(null);
   const [skipTurns, setSkipTurns] = useState(0);
@@ -39,7 +39,7 @@ export const useGameState = () => {
   const [showPolicyModal, setShowPolicyModal] = useState(false);
 
   const movePlayer = (steps: number) => {
-    // 检查是否需要跳过回合
+    // Check if need to skip turn
     if (skipTurns > 0) {
       setSkipTurns(prev => prev - 1);
       setDiceRoll(steps);
@@ -50,14 +50,14 @@ export const useGameState = () => {
     setDiceRoll(steps);
     setTurnCount(prev => prev + 1);
     
-    // 计算建筑每回合效果
+    // Calculate building effects per turn
     calculateBuildingEffects();
     
     setPlayerIndex((prev) => {
       const newIndex = (prev + steps) % pathCoordinates.length;
-      if (newIndex === 0 && prev !== 0) setPassedStart(true); // 再次经过起点
+      if (newIndex === 0 && prev !== 0) setPassedStart(true); // Pass starting point again
       
-      // 触发格子事件
+      // Trigger cell event
       const currentCell = pathCoordinates[newIndex];
       triggerCellEvent(currentCell.type);
       
@@ -65,7 +65,7 @@ export const useGameState = () => {
     });
   };
 
-  // 计算建筑每回合效果
+  // Calculate building effects per turn
   const calculateBuildingEffects = () => {
     let totalIncome = 0;
     let totalCO2 = 0;
@@ -78,7 +78,7 @@ export const useGameState = () => {
       totalEco += building.ecoPerTurn;
     });
     
-    // 应用效果
+    // Apply effects
     if (totalIncome > 0) {
       setMoney(prev => prev + totalIncome);
     }
@@ -90,7 +90,7 @@ export const useGameState = () => {
     }
   };
 
-  // 应用事件效果
+  // Apply event effects
   const applyEventEffects = (effects: GameEvent['effects']) => {
     if (effects.money) setMoney(prev => Math.max(0, prev + effects.money!));
     if (effects.co2) setCO2(prev => Math.max(0, prev + effects.co2!));
@@ -98,7 +98,7 @@ export const useGameState = () => {
     if (effects.skipTurns) setSkipTurns(prev => prev + effects.skipTurns!);
   };
 
-  // 触发格子事件
+  // Trigger cell event
   const triggerCellEvent = (cellType: string) => {
     let event: GameEvent | null = null;
     
@@ -132,7 +132,7 @@ export const useGameState = () => {
     }
   };
 
-  // 处理政策选择
+  // Handle policy choice
   const handlePolicyChoice = (choiceIndex: number) => {
     if (currentPolicy) {
       const choice = currentPolicy.choices[choiceIndex];
@@ -143,13 +143,13 @@ export const useGameState = () => {
     setShowPolicyModal(false);
   };
 
-  // 关闭事件弹窗
+  // Close event modal
   const closeEventModal = () => {
     setCurrentEvent(null);
     setShowEventModal(false);
   };
 
-  // 关闭政策弹窗
+  // Close policy modal
   const closePolicyModal = () => {
     setCurrentPolicy(null);
     setShowPolicyModal(false);
@@ -159,8 +159,8 @@ export const useGameState = () => {
   const posKey = `${currentPosition.row}-${currentPosition.col}`;
 
   const canBuildHere = (): boolean => {
-    if (built[posKey]) return false; // 已建造
-    if (playerIndex === 0 && !passedStart) return false; // 起点第一次不能建
+    if (built[posKey]) return false; // Already built
+    if (playerIndex === 0 && !passedStart) return false; // Cannot build at starting point on first visit
     return true;
   };
 
@@ -172,7 +172,7 @@ export const useGameState = () => {
       green: 150,
     };
     const cost = costMap[type];
-    if (money < cost) return; // 钱不够
+    if (money < cost) return; // Not enough money
 
     setBuilt((prev) => ({ ...prev, [posKey]: type }));
     setMoney((prev) => prev - cost);
@@ -188,21 +188,21 @@ export const useGameState = () => {
     }
   };
 
-  // 计算总收入
+  // Calculate total income
   const getTotalIncome = () => {
     return Object.values(built).reduce((total, buildingType) => {
       return total + buildingData[buildingType].income;
     }, 0);
   };
 
-  // 计算每回合CO2排放
+  // Calculate CO2 emissions per turn
   const getTotalCO2PerTurn = () => {
     return Object.values(built).reduce((total, buildingType) => {
       return total + buildingData[buildingType].co2PerTurn;
     }, 0);
   };
 
-  // 计算每回合生态效果
+  // Calculate ecological effects per turn
   const getTotalEcoPerTurn = () => {
     return Object.values(built).reduce((total, buildingType) => {
       return total + buildingData[buildingType].ecoPerTurn;
@@ -224,7 +224,7 @@ export const useGameState = () => {
     getTotalIncome,
     getTotalCO2PerTurn,
     getTotalEcoPerTurn,
-    // 事件系统
+    // Event system
     currentEvent,
     currentPolicy,
     skipTurns,

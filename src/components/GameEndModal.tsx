@@ -67,14 +67,14 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-white/20 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* 头部 */}
+        {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="text-center">
             <div className="text-6xl mb-4">
               {winner ? '🎉' : '⏰'}
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">
-              {winner ? '游戏结束！' : '游戏结束'}
+              {winner ? 'Game Over!' : 'Game Over'}
             </h2>
             <p className="text-lg text-gray-300">
               {reason}
@@ -88,7 +88,7 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
                       {winner.name}
                     </div>
                     <div className="text-yellow-400 font-semibold">
-                      获得胜利！
+                      Wins!
                     </div>
                   </div>
                 </div>
@@ -97,10 +97,10 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
           </div>
         </div>
 
-        {/* 排行榜 */}
+        {/* Leaderboard */}
         <div className="p-6">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            🏆 最终排行榜
+            🏆 Final Leaderboard
           </h3>
           <div className="space-y-3">
             {scores.map((scoreData) => {
@@ -118,14 +118,14 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      {/* 排名 */}
+                      {/* Rank */}
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
                         getRankColor(scoreData.rank)
                       }`}>
                         {getRankIcon(scoreData.rank)}
                       </div>
                       
-                      {/* 玩家信息 */}
+                      {/* Player Info */}
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{getPlayerIcon(scoreData.playerId)}</span>
                         <div>

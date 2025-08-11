@@ -1,15 +1,15 @@
-// DeepSeek API 服务
+// DeepSeek API Service
 import type { Player, PlayerType } from '../hooks/useMultiPlayerGameState';
 import type { BuildingType } from '../data/buildings';
 import { pathCoordinates } from '../utils/path';
 
-// DeepSeek API 配置
-// 支持本地ollama部署和远程API
+// DeepSeek API Configuration
+// Support local ollama deployment and remote API
 const DEEPSEEK_API_URL = import.meta.env.VITE_DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY || '';
 const DEEPSEEK_MODEL = import.meta.env.VITE_DEEPSEEK_MODEL || 'deepseek-chat';
 
-// API 请求接口
+// API Request Interface
 interface DeepSeekRequest {
   model: string;
   messages: Array<{
@@ -20,7 +20,7 @@ interface DeepSeekRequest {
   max_tokens?: number;
 }
 
-// API 响应接口
+// API Response Interface
 interface DeepSeekResponse {
   choices: Array<{
     message: {
@@ -29,7 +29,7 @@ interface DeepSeekResponse {
   }>;
 }
 
-// 游戏状态信息
+// Game State Information
 interface GameContext {
   currentPlayer: Player;
   allPlayers: Player[];
@@ -43,177 +43,196 @@ interface GameContext {
   };
 }
 
-// 构建系统提示词
+// Build system prompt
 function buildSystemPrompt(playerType: PlayerType): string {
-  const basePrompt = `你是一个智能游戏AI，正在玩一个类似大富翁的城市建设游戏。
+  const basePrompt = `You are an intelligent game AI playing a Monopoly-like city building game.
 
-游戏规则：
-- 玩家在棋盘上移动，可以在格子上建造建筑
-- 建筑类型：工厂(300金币，高收入+80CO2-10生态)、住宅(200金币，中等收入+30CO2)、绿色建筑(150金币，低收入-20CO2+30生态)
-- 每回合建筑会产生收入和环境影响
-- 游戏目标是平衡经济发展和环境保护
+Game Rules:
+- Players move on the board and can build buildings on tiles
+- Building types: Factory (300 coins, high income +80CO2 -10 eco), Residential (200 coins, medium income +30CO2), Green Building (150 coins, low income -20CO2 +30 eco)
+- Buildings generate income and environmental impact each turn
+- Game goal is to balance economic development and environmental protection
 
-你的角色特点：`;
+Your character traits:`;
 
   if (playerType === 'ai-income') {
     return basePrompt + `
-- 你是商业AI，优先追求经济利益最大化
-- 偏好建造高收入建筑（工厂）
-- 在经济效益和环境保护之间更倾向于经济
-- 但也要考虑长期可持续发展
+- You are a business AI, prioritizing economic benefit maximization
+- Prefer building high-income buildings (factories)
+- Between economic benefits and environmental protection, lean towards economy
+- But also consider long-term sustainable development
 
-请根据当前游戏状态做出最优决策，只返回建筑类型（factory/residential/green）或none（不建造）。`;
+Please make optimal decisions based on current game state, only return building type (factory/residential/green) or none (don't build).`;
   } else {
     return basePrompt + `
-- 你是环保AI，优先追求环境保护和可持续发展
-- 偏好建造绿色建筑，避免高污染建筑
-- 在经济效益和环境保护之间更倾向于环保
-- 但也要保证基本的经济发展需求
+- You are an eco AI, prioritizing environmental protection and sustainable development
+- Prefer building green buildings, avoid high-pollution buildings
+- Between economic benefits and environmental protection, lean towards environment
+- But also ensure basic economic development needs
 
-请根据当前游戏状态做出最优决策，只返回建筑类型（factory/residential/green）或none（不建造）。`;
+Please make optimal decisions based on current game state, only return building type (factory/residential/green) or none (don't build).`;
   }
 }
 
-// 构建用户消息
+// Build user message
 function buildUserMessage(context: GameContext): string {
   const { currentPlayer, allPlayers, currentPosition } = context;
   
-  const playerStatus = `当前状态：
-- 金钱：${currentPlayer.money}
-- CO2排放：${currentPlayer.co2}
-- 生态值：${currentPlayer.eco}
-- 位置：第${currentPlayer.position}格（${currentPosition.type}类型）
-- 已建建筑数量：${Object.keys(currentPlayer.built).length}`;
+  const playerStatus = `Current Status:
+- Money: ${currentPlayer.money}
+- CO2 Emissions: ${currentPlayer.co2}
+- Eco Value: ${currentPlayer.eco}
+- Position: Grid ${currentPlayer.position} (${currentPosition.type} type)
+- Built Buildings: ${Object.keys(currentPlayer.built).length}`;
   
-  const buildingOptions = `可建造建筑：
-- 工厂：300金币，收入高，+80CO2，-10生态
-- 住宅：200金币，收入中等，+30CO2
-- 绿色建筑：150金币，收入低，-20CO2，+30生态`;
+  const buildingOptions = `Available Buildings:
+- Factory: 300 coins, high income, +80CO2, -10 eco
+- Residential: 200 coins, medium income, +30CO2
+- Green Building: 150 coins, low income, -20CO2, +30 eco`;
   
   const otherPlayers = allPlayers
     .filter(p => p.id !== currentPlayer.id)
-    .map(p => `${p.name}：金钱${p.money}，CO2${p.co2}，生态${p.eco}`)
+    .map(p => `${p.name}: Money${p.money}, CO2${p.co2}, Eco${p.eco}`)
     .join('\n');
   
   const posKey = `${currentPosition.row}-${currentPosition.col}`;
   const hasBuilding = currentPlayer.built[posKey];
   
-  let situationAnalysis = '';
+  let message = `${playerStatus}
+
+${buildingOptions}
+
+Other Players:
+${otherPlayers}
+
+`;
+  
   if (hasBuilding) {
-    situationAnalysis = '当前位置已有建筑，无法建造。';
+    message += `Current position already has a building. Cannot build here.`;
+  } else if (currentPosition.type !== 'build') {
+    message += `Current position type is ${currentPosition.type}, not buildable.`;
   } else if (currentPlayer.position === 0 && !currentPlayer.passedStart) {
-    situationAnalysis = '在起点且未经过起点，无法建造。';
+    message += `At start position but haven't passed start yet, cannot build.`;
   } else {
-    situationAnalysis = '当前位置可以建造建筑。';
+    message += `Current position is buildable. What would you like to build?`;
   }
   
-  return `${playerStatus}\n\n其他玩家：\n${otherPlayers}\n\n${buildingOptions}\n\n${situationAnalysis}\n\n请分析当前局势并做出建造决策。只返回：factory、residential、green 或 none`;
+  return message;
 }
 
-// 调用 DeepSeek API
+// Call DeepSeek API
 async function callDeepSeekAPI(request: DeepSeekRequest): Promise<string> {
-  // 检查是否为ollama本地部署（通过URL判断）
-  const isOllama = DEEPSEEK_API_URL.includes('localhost') || DEEPSEEK_API_URL.includes('127.0.0.1') || DEEPSEEK_API_URL.includes('ollama');
+  console.log('🤖 Calling DeepSeek API');
   
-  // 如果不是ollama且没有API key，则报错
+  // Check if it's ollama local deployment (by URL)
+  const isOllama = DEEPSEEK_API_URL.includes('localhost') || DEEPSEEK_API_URL.includes('127.0.0.1');
+  
+  // If not ollama and no API key, throw error
   if (!isOllama && !DEEPSEEK_API_KEY) {
-    console.warn('DeepSeek API Key 未配置，使用默认AI逻辑');
-    throw new Error('API Key not configured');
+    console.warn('⚠️ DeepSeek API Key not configured, using default AI logic');
+    throw new Error('API key not configured');
   }
   
-  console.log('🚀 开始调用AI API...');
-  console.log('🔗 API地址:', DEEPSEEK_API_URL);
-  console.log('🤖 使用模型:', DEEPSEEK_MODEL);
-  console.log('📝 请求数据:', JSON.stringify(request, null, 2));
+  console.log('🚀 Starting AI API call...');
+  console.log('📍 API URL:', DEEPSEEK_API_URL);
+  console.log('🎯 Using model:', request.model);
+  console.log('📤 Request data:', JSON.stringify(request, null, 2));
+  
+  // Build request headers
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  
+  // Only add Authorization header in non-ollama environment
+  if (!isOllama) {
+    headers['Authorization'] = `Bearer ${DEEPSEEK_API_KEY}`;
+  }
   
   try {
-    // 构建请求头
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    // 只有在非ollama环境下才添加Authorization头
-    if (!isOllama && DEEPSEEK_API_KEY) {
-      headers['Authorization'] = `Bearer ${DEEPSEEK_API_KEY}`;
-    }
-    
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers,
-      body: JSON.stringify(request),
+      body: JSON.stringify(request)
     });
     
-    console.log('📡 API响应状态:', response.status, response.statusText);
+    console.log('📊 API response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ API请求失败详情:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`API request failed: ${response.status} - ${errorText}`);
+      console.error('❌ API request failed details:', errorText);
+      throw new Error(`API request failed: ${response.status}`);
     }
     
     const data: DeepSeekResponse = await response.json();
-    console.log('✅ API响应成功:', data);
+    console.log('✅ API response success');
     
-    const content = data.choices[0]?.message?.content || '';
-    console.log('🎯 AI回复内容:', content);
+    const aiReply = data.choices[0]?.message?.content || '';
+    console.log('🎭 AI reply content:', aiReply);
     
-    return content;
+    return aiReply;
+    
   } catch (error) {
-    console.error('💥 DeepSeek API 调用失败:', error);
+    console.error('💥 DeepSeek API call failed:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('🌐 网络连接问题，请检查网络连接');
+      throw new Error('Network connection issue, please check network connection');
     }
     throw error;
   }
 }
 
-// 解析AI响应
+// Parse AI response
 function parseAIResponse(response: string): BuildingType | null {
-  const cleanResponse = response.toLowerCase().trim();
+  if (!response) {
+    console.log('🔍 Parse AI response: Empty response, return null (don\'t build)');
+    return null;
+  }
   
-  if (cleanResponse.includes('factory')) return 'factory';
-  if (cleanResponse.includes('residential')) return 'residential';
-  if (cleanResponse.includes('green')) return 'green';
-  if (cleanResponse.includes('none')) return null;
+  const lowerResponse = response.toLowerCase().trim();
+  console.log('🔍 Parse AI response:', lowerResponse);
   
-  // 如果无法解析，返回null（不建造）
-  console.warn('无法解析AI响应:', response);
+  if (lowerResponse.includes('factory')) return 'factory';
+  if (lowerResponse.includes('residential')) return 'residential';
+  if (lowerResponse.includes('green')) return 'green';
+  
+  // If unable to parse, return null (don't build)
+  console.log('❓ Unable to parse AI response:', response);
   return null;
 }
 
-// AI升级决策函数
+// AI upgrade decision function
 export async function getAIUpgradeChoiceFromDeepSeek(
   player: Player,
+  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>,
   allPlayers: Player[],
-  gamePhase: 'rolling' | 'building' | 'waiting',
   turnCount: number,
-  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
+  gamePhase: string
 ): Promise<boolean> {
-  console.log(`🔍 DeepSeek API: 开始为玩家 ${player.name} 生成升级决策`);
-  console.log(`📍 玩家状态: 位置=${player.position}, 金钱=${player.money}, CO2=${player.co2}, 生态=${player.eco}`);
-  console.log(`🏗️ 可升级建筑:`, upgradableBuildings);
-  
   try {
-    // 如果没有可升级的建筑，直接返回false
+    console.log(`🤖 DeepSeek API: Starting upgrade decision generation for player ${player.name}`);
+    console.log(`👤 Player status: Position=${player.position}, Money=${player.money}, CO2=${player.co2}, Eco=${player.eco}`);
+    console.log(`🏗️ Upgradable buildings:`, upgradableBuildings);
+    
     if (upgradableBuildings.length === 0) {
-      console.log(`❌ DeepSeek API: 没有可升级的建筑`);
+      console.log('🚫 DeepSeek API: No upgradable buildings');
       return false;
     }
     
-    // 构建升级决策的系统提示词
+    // Build upgrade decision system prompt
     const systemPrompt = buildUpgradeSystemPrompt(player.type);
     
-    // 构建用户消息
-    const userMessage = buildUpgradeUserMessage(player, allPlayers, gamePhase, turnCount, upgradableBuildings);
+    // Build user message
+    const userMessage = buildUpgradeUserMessage(
+      player,
+      upgradableBuildings,
+      allPlayers,
+      turnCount,
+      gamePhase
+    );
     
-    console.log(`📝 升级决策系统提示词:`, systemPrompt.substring(0, 200) + '...');
-    console.log(`📝 升级决策用户消息:`, userMessage.substring(0, 200) + '...');
+    console.log('📝 Upgrade decision system prompt:', systemPrompt);
+    console.log('💬 Upgrade decision user message:', userMessage);
     
-    const requestBody: DeepSeekRequest = {
+    const request: DeepSeekRequest = {
       model: DEEPSEEK_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -223,54 +242,61 @@ export async function getAIUpgradeChoiceFromDeepSeek(
       max_tokens: 100
     };
     
-    console.log(`🌐 发送升级决策请求到 DeepSeek API...`);
+    console.log('📤 Sending upgrade decision request to DeepSeek API...');
+    const response = await callDeepSeekAPI(request);
     
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ DeepSeek API升级决策请求失败:`, response.status, errorText);
-      throw new Error(`API请求失败: ${response.status}`);
+    if (!response) {
+      console.error('❌ DeepSeek API upgrade decision request failed:', 'Empty response');
+      return getFallbackUpgradeChoice(player, upgradableBuildings);
     }
     
-    const data: DeepSeekResponse = await response.json();
-    const aiResponse = data.choices[0]?.message?.content?.trim();
+    console.log('📥 DeepSeek API upgrade decision raw response:', response);
     
-    console.log(`🤖 DeepSeek API升级决策原始响应:`, aiResponse);
+    const shouldUpgrade = parseUpgradeResponse(response);
+    console.log(`✅ DeepSeek API upgrade decision success! Player ${player.name} decision: ${shouldUpgrade ? 'Upgrade' : 'No upgrade'}`);
     
-    // 解析AI响应
-    const shouldUpgrade = parseUpgradeResponse(aiResponse);
-    
-    console.log(`✅ DeepSeek API升级决策成功! 玩家 ${player.name} 决定: ${shouldUpgrade ? '升级' : '不升级'}`);
     return shouldUpgrade;
     
   } catch (error) {
-    console.error(`❌ DeepSeek API升级决策失败:`, error);
-    // 返回备用逻辑结果
+    console.error('💥 DeepSeek API upgrade decision failed:', error);
+    console.log('🔄 Fallback logic result:', getFallbackUpgradeChoice(player, upgradableBuildings));
     return getFallbackUpgradeChoice(player, upgradableBuildings);
   }
 }
 
-// 主要的AI决策函数
-export async function getAIBuildingChoiceFromDeepSeek(
+// Main AI decision function
+export async function getAIChoiceFromDeepSeek(
   player: Player,
   allPlayers: Player[],
   gamePhase: 'rolling' | 'building' | 'waiting',
   turnCount: number
 ): Promise<BuildingType | null> {
-  console.log(`🔍 DeepSeek API: 开始为玩家 ${player.name} 生成建筑决策`);
-  console.log(`📍 玩家状态: 位置=${player.position}, 金钱=${player.money}, CO2=${player.co2}, 生态=${player.eco}`);
-  
   try {
-    // 构建游戏上下文
+    console.log(`🤖 DeepSeek API: Starting building decision generation for player ${player.name}`);
+    console.log(`👤 Player status: Position=${player.position}, Money=${player.money}, CO2=${player.co2}, Eco=${player.eco}`);
+    
+    // Build game context
     const currentPosition = pathCoordinates[player.position];
+    console.log(`🎮 Game context: Turn=${turnCount}, Phase=${gamePhase}, Position type=${currentPosition.type}`);
+    
+    // Check basic building conditions
+    if (currentPosition.type !== 'build') {
+      console.log(`🚫 DeepSeek API: Current grid type is ${currentPosition.type}, not a buildable grid, cannot build`);
+      return null;
+    }
+    
+    const posKey = `${currentPosition.row}-${currentPosition.col}`;
+    if (player.built[posKey]) {
+      console.log('🏠 DeepSeek API: Position already has building, cannot build');
+      return null;
+    }
+    
+    if (player.position === 0 && !player.passedStart) {
+      console.log('🏁 DeepSeek API: At start and haven\'t passed start, cannot build');
+      return null;
+    }
+    
+    // Build API request...
     const context: GameContext = {
       currentPlayer: player,
       allPlayers,
@@ -280,281 +306,247 @@ export async function getAIBuildingChoiceFromDeepSeek(
       currentPosition
     };
     
-    console.log(`🎯 游戏上下文: 回合=${turnCount}, 阶段=${gamePhase}, 位置类型=${currentPosition.type}`);
+    const systemPrompt = buildSystemPrompt(player.type);
+    const userMessage = buildUserMessage(context);
     
-    // 检查格子类型：只有可建造格子才能建造
-    if (currentPosition.type !== 'build') {
-      console.log(`❌ DeepSeek API: 当前格子类型为 ${currentPosition.type}，不是可建造格子，无法建造`);
-      return null;
-    }
+    console.log(`🎯 AI type: ${player.type === 'ai-income' ? 'Business AI' : 'Eco AI'}`);
     
-    // 检查基本建造条件
-    const posKey = `${currentPosition.row}-${currentPosition.col}`;
-    if (player.built[posKey]) {
-      console.log(`❌ DeepSeek API: 位置已有建筑，无法建造`);
-      return null;
-    }
-    if (player.position === 0 && !player.passedStart) {
-      console.log(`❌ DeepSeek API: 在起点且未经过起点，无法建造`);
-      return null;
-    }
-    
-    console.log(`📝 构建API请求...`);
-    console.log(`🤖 AI类型: ${player.type === 'ai-income' ? '商业AI' : '环保AI'}`);
-    
-    // 构建API请求
     const request: DeepSeekRequest = {
       model: DEEPSEEK_MODEL,
       messages: [
-        {
-          role: 'system',
-          content: buildSystemPrompt(player.type)
-        },
-        {
-          role: 'user',
-          content: buildUserMessage(context)
-        }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
       ],
       temperature: 0.7,
-      max_tokens: 100
+      max_tokens: 50
     };
     
-    console.log(`🌐 发送请求到DeepSeek API: ${DEEPSEEK_API_URL}`);
-    console.log(`📊 使用模型: ${DEEPSEEK_MODEL}`);
+    console.log('📤 Sending request to DeepSeek API');
+    console.log('🎯 Using model:', DEEPSEEK_MODEL);
+    console.log('🤖 Calling API...');
     
-    // 调用API
     const response = await callDeepSeekAPI(request);
-    console.log(`📥 DeepSeek API响应: "${response}"`);
+    console.log('📥 DeepSeek API response:', response);
     
     const choice = parseAIResponse(response);
-    console.log(`🔍 解析结果: ${choice || 'none'}`);
+    console.log('🔍 Parse result:', choice);
     
-    // 验证选择是否可行（检查金钱）
+    // Verify if choice is feasible (check money)
     if (choice) {
-      const costMap = {
-        factory: 300,
-        residential: 200,
-        green: 150,
-      };
-      
-      const cost = costMap[choice];
-      console.log(`💰 建筑成本检查: ${choice}需要${cost}金币，玩家有${player.money}金币`);
-      
-      if (player.money < cost) {
-        console.log(`❌ 金钱不足! AI选择了${choice}但只有${player.money}金币，需要${cost}金币`);
+      console.log('💰 Building cost check');
+      const costs = { factory: 300, residential: 200, green: 150 };
+      if (player.money < costs[choice]) {
+        console.log(`💸 Insufficient money: need ${costs[choice]}, have ${player.money}`);
         return null;
-      } else {
-        console.log(`✅ 金钱充足，可以建造${choice}`);
       }
+      console.log(`✅ Sufficient money, can build`);
     }
     
-    console.log(`🎯 DeepSeek AI最终决策: ${choice || 'none'}`);
+    console.log(`🎯 DeepSeek AI final decision: ${choice || 'none'}`);
     return choice;
     
   } catch (error) {
-    console.error('❌ DeepSeek API调用失败:', error);
-    console.log(`🔄 降级到备用逻辑...`);
-    // 降级到原有的简单AI逻辑
+    console.error('💥 DeepSeek API call failed:', error);
+    console.log('🔄 Fallback to backup logic');
     return getFallbackAIChoice(player);
   }
 }
 
-// 构建升级决策的系统提示词
+// Build upgrade decision system prompt
 function buildUpgradeSystemPrompt(playerType: PlayerType): string {
-  const basePrompt = `你是一个智能游戏AI，正在玩一个类似大富翁的城市建设游戏。
+  const basePrompt = `You are an intelligent game AI playing a Monopoly-like city building game.
 
-游戏规则：
-- 玩家可以升级自己的建筑来获得更好的效果
-- 升级需要花费150金币，升级后建筑效果会增强
-- 升级后的建筑会产生更多收入和环境影响
-- 每个建筑只能升级一次（从等级1升级到等级2）
-- 游戏目标是平衡经济发展和环境保护
+Game Rules:
+- Players can upgrade their buildings to get better effects
+- Upgrading costs 150 coins, upgraded buildings have enhanced effects
+- Upgraded buildings generate more income and environmental impact
+- Each building can only be upgraded once (from level 1 to level 2)
+- The game goal is to balance economic development and environmental protection
 
-你的角色特点：`;
+Your character traits:`;
 
   if (playerType === 'ai-income') {
     return basePrompt + `
-- 你是商业AI，优先追求经济利益最大化
-- 偏好升级能带来高收入的建筑（如工厂）
-- 在经济效益和环境保护之间更倾向于经济
-- 但也要考虑长期可持续发展和资金管理
+- You are a business AI, prioritizing economic benefit maximization
+- Prefer upgrading high-income buildings (like factories)
+- Between economic benefits and environmental protection, lean towards economics
+- But also consider long-term sustainable development and fund management
 
-请根据当前游戏状态决定是否升级建筑，只返回yes（升级）或no（不升级）。`;
+Please decide whether to upgrade buildings based on current game state, only return yes (upgrade) or no (don't upgrade).`;
   } else {
     return basePrompt + `
-- 你是环保AI，优先追求环境保护和可持续发展
-- 偏好升级绿色建筑，谨慎升级高污染建筑
-- 在经济效益和环境保护之间更倾向于环保
-- 但也要保证基本的经济发展需求
+- You are an eco AI, prioritizing environmental protection and sustainable development
+- Prefer upgrading green buildings, cautiously upgrade high-pollution buildings
+- Between economic benefits and environmental protection, lean towards environment
+- But also ensure basic economic development needs
 
-请根据当前游戏状态决定是否升级建筑，只返回yes（升级）或no（不升级）。`;
+Please decide whether to upgrade buildings based on current game state, only return yes (upgrade) or no (don't upgrade).`;
   }
 }
 
-// 构建升级决策的用户消息
+// Build upgrade decision user message
 function buildUpgradeUserMessage(
   player: Player,
+  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>,
   allPlayers: Player[],
-  gamePhase: 'rolling' | 'building' | 'waiting',
   turnCount: number,
-  upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
+  gamePhase: string
 ): string {
   const currentPosition = pathCoordinates[player.position];
   
-  let message = `当前游戏状态：
+  let message = `Current Game Status:
 `;
-  message += `回合数：${turnCount}
+  message += `Turn Count: ${turnCount}
 `;
-  message += `游戏阶段：${gamePhase}
+  message += `Game Phase: ${gamePhase}
 
 `;
   
-  message += `你的状态：
+  message += `Your Status:
 `;
-  message += `- 金钱：${player.money}
+  message += `- Money: ${player.money}
 `;
-  message += `- CO2排放：${player.co2}
+  message += `- CO2 Emissions: ${player.co2}
 `;
-  message += `- 生态指数：${player.eco}
+  message += `- Eco Index: ${player.eco}
 `;
-  message += `- 当前位置：第${player.position}格 (${currentPosition.row}, ${currentPosition.col})
-
+  message += `- Current Position: Grid ${player.position} (${currentPosition.row}, ${currentPosition.col})
 `;
   
-  message += `可升级的建筑：
+  message += `Upgradable Buildings:
 `;
   upgradableBuildings.forEach((building, index) => {
     const pos = pathCoordinates[building.position];
-    message += `${index + 1}. 位置${building.position} (${pos.row}, ${pos.col}) - ${building.buildingType}建筑，升级费用：${building.upgradeCost}金币
+    message += `${index + 1}. Position ${building.position} (${pos.row}, ${pos.col}) - ${building.buildingType} building, upgrade cost: ${building.upgradeCost} coins
 `;
   });
   
   message += `
-其他玩家状态：
+Other Players Status:
 `;
   allPlayers.filter(p => p.id !== player.id).forEach(p => {
-    message += `- ${p.name}：金钱${p.money}，CO2=${p.co2}，生态=${p.eco}
+    message += `- ${p.name}: Money ${p.money}, CO2=${p.co2}, Eco=${p.eco}
 `;
   });
   
   message += `
-请决定是否升级建筑（只返回yes或no）：`;
+Please decide whether to upgrade buildings (only return yes or no):`;
   
   return message;
 }
 
-// 解析升级响应
+// Parse upgrade response
 function parseUpgradeResponse(response: string): boolean {
   if (!response) return false;
   
   const lowerResponse = response.toLowerCase().trim();
   
-  // 检查明确的yes/no回答
-  if (lowerResponse.includes('yes') || lowerResponse.includes('升级')) {
+  // Check explicit yes/no answers
+  if (lowerResponse.includes('yes') || lowerResponse.includes('upgrade')) {
     return true;
   }
-  if (lowerResponse.includes('no') || lowerResponse.includes('不升级')) {
+  if (lowerResponse.includes('no') || lowerResponse.includes('no upgrade')) {
     return false;
   }
   
-  // 默认不升级
+  // Default to no upgrade
   return false;
 }
 
-// 备用升级逻辑
+// Fallback upgrade logic
 function getFallbackUpgradeChoice(
   player: Player,
   upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}>
 ): boolean {
-  console.log(`🔧 使用备用升级逻辑 - 玩家: ${player.name}`);
+  console.log(`🔧 Using fallback upgrade logic - Player: ${player.name}`);
   
-  // 如果没有可升级建筑，返回false
+  // If no upgradable buildings, return false
   if (upgradableBuildings.length === 0) {
     return false;
   }
   
-  // 检查是否有足够的钱升级
+  // Check if there's enough money to upgrade
   const canAffordUpgrade = upgradableBuildings.some(building => player.money >= building.upgradeCost);
   if (!canAffordUpgrade) {
-    console.log(`💰 备用逻辑: 金钱不足，无法升级`);
+    console.log(`💰 Fallback logic: Insufficient money, cannot upgrade`);
     return false;
   }
   
   if (player.type === 'ai-income') {
-    // 商业AI：如果有工厂且钱够，优先升级工厂
+    // Business AI: If there's a factory and enough money, prioritize upgrading factory
     const factoryToUpgrade = upgradableBuildings.find(b => b.buildingType === 'factory' && player.money >= b.upgradeCost);
     if (factoryToUpgrade) {
-      console.log(`🏭 备用逻辑: 商业AI选择升级工厂`);
+      console.log(`🏭 Fallback logic: Business AI chooses to upgrade factory`);
       return true;
     }
-    // 如果钱很多（超过400），升级任何建筑
+    // If lots of money (over 400), upgrade any building
     if (player.money >= 400) {
-      console.log(`💰 备用逻辑: 商业AI资金充足，选择升级`);
+      console.log(`💰 Fallback logic: Business AI has sufficient funds, chooses to upgrade`);
       return true;
     }
   } else if (player.type === 'ai-eco') {
-    // 环保AI：优先升级绿色建筑
+    // Eco AI: Prioritize upgrading green buildings
     const greenToUpgrade = upgradableBuildings.find(b => b.buildingType === 'green' && player.money >= b.upgradeCost);
     if (greenToUpgrade) {
-      console.log(`🌱 备用逻辑: 环保AI选择升级绿色建筑`);
+      console.log(`🌱 Fallback logic: Eco AI chooses to upgrade green building`);
       return true;
     }
-    // 如果钱很多（超过350），升级非工厂建筑
+    // If lots of money (over 350), upgrade non-factory buildings
     if (player.money >= 350) {
       const nonFactoryToUpgrade = upgradableBuildings.find(b => b.buildingType !== 'factory' && player.money >= b.upgradeCost);
       if (nonFactoryToUpgrade) {
-        console.log(`💰 备用逻辑: 环保AI资金充足，选择升级非工厂建筑`);
+        console.log(`💰 Fallback logic: Eco AI has sufficient funds, chooses to upgrade non-factory building`);
         return true;
       }
     }
   }
   
-  console.log(`❌ 备用逻辑: 不升级`);
+  console.log(`❌ Fallback logic: No upgrade`);
   return false;
 }
 
-// 备用AI逻辑（原有的简单逻辑）
+// Fallback AI logic (original simple logic)
 function getFallbackAIChoice(player: Player): BuildingType | null {
   const currentPosition = pathCoordinates[player.position];
   const posKey = `${currentPosition.row}-${currentPosition.col}`;
   
-  // 检查格子类型：只有可建造格子才能建造
+  // Check grid type: only buildable grids can be built on
   if (currentPosition.type !== 'build') {
-    console.log(`❌ 备用逻辑: 当前格子类型为 ${currentPosition.type}，不是可建造格子，无法建造`);
+    console.log(`❌ Fallback logic: Current grid type is ${currentPosition.type}, not a buildable grid, cannot build`);
     return null;
   }
   
-  // 检查是否可以建造
+  // Check if building is possible
   if (player.built[posKey]) return null;
   if (player.position === 0 && !player.passedStart) return null;
   
   if (player.type === 'ai-income') {
-    // 商业AI优先建造工厂（高收入）
+    // Business AI prioritizes building factories (high income)
     if (player.money >= 300) return 'factory';
     if (player.money >= 200) return 'residential';
     if (player.money >= 150) return 'green';
   } else if (player.type === 'ai-eco') {
-    // 环保AI优先建造绿色建筑
+    // Eco AI prioritizes building green buildings
     if (player.money >= 150) return 'green';
     if (player.money >= 200) return 'residential';
-    // 环保AI避免建造工厂，除非钱太多
+    // Eco AI avoids building factories unless too much money
     if (player.money >= 500) return 'factory';
   }
   
   return null;
 }
 
-// 政策选择AI（可选功能）
+// Policy choice AI (optional feature)
 export async function getAIPolicyChoiceFromDeepSeek(
   player: Player,
   policyChoices: Array<{ text: string; effects: any }>
 ): Promise<number> {
   try {
-    const systemPrompt = buildSystemPrompt(player.type) + '\n\n现在需要你选择政策选项，请返回选项编号（0、1、2等）。';
+    const systemPrompt = buildSystemPrompt(player.type) + '\n\nNow you need to choose a policy option, please return the option number (0, 1, 2, etc.).';
     
-    const userMessage = `当前政策选择：\n${policyChoices.map((choice, idx) => 
-      `${idx}: ${choice.text} (效果: ${JSON.stringify(choice.effects)})`
-    ).join('\n')}\n\n请选择最符合你角色特点的选项编号。`;
+    const userMessage = `Current Policy Choices:\n${policyChoices.map((choice, idx) => 
+      `${idx}: ${choice.text} (Effects: ${JSON.stringify(choice.effects)})`
+    ).join('\n')}\n\nPlease choose the option number that best fits your character traits.`;
     
     const request: DeepSeekRequest = {
     model: DEEPSEEK_MODEL,
@@ -576,33 +568,33 @@ export async function getAIPolicyChoiceFromDeepSeek(
     return choiceIndex;
     
   } catch (error) {
-    console.error('DeepSeek政策选择失败，使用备用逻辑:', error);
-    // 降级到原有逻辑
+    console.error('DeepSeek policy choice failed, using fallback logic:', error);
+    // Fallback to original logic
     return getFallbackPolicyChoice(player, policyChoices);
   }
 }
 
-// 备用政策选择逻辑
+// Fallback policy choice logic
 function getFallbackPolicyChoice(player: Player, policyChoices: Array<{ text: string; effects: any }>): number {
   if (player.type === 'ai-income') {
-    // 商业AI优先选择增加金钱的选项
+    // Business AI prioritizes options that increase money
     const bestChoice = policyChoices.findIndex(choice => (choice.effects.money || 0) > 0);
     if (bestChoice !== -1) return bestChoice;
     
-    // 如果没有增加金钱的选项，选择损失最少的
+    // If no money-increasing options, choose the one with least loss
     return policyChoices.reduce((bestIdx, choice, idx) => {
       const currentMoney = choice.effects.money || 0;
       const bestMoney = policyChoices[bestIdx].effects.money || 0;
       return currentMoney > bestMoney ? idx : bestIdx;
     }, 0);
   } else {
-    // 环保AI优先选择增加生态或减少CO2的选项
+    // Eco AI prioritizes options that increase eco or reduce CO2
     const bestChoice = policyChoices.findIndex(choice => 
       (choice.effects.eco || 0) > 0 || (choice.effects.co2 || 0) < 0
     );
     if (bestChoice !== -1) return bestChoice;
     
-    // 如果没有环保选项，选择对环境影响最小的
+    // If no eco options, choose the one with minimal environmental impact
     return policyChoices.reduce((bestIdx, choice, idx) => {
       const currentEcoScore = (choice.effects.eco || 0) - (choice.effects.co2 || 0);
       const bestEcoScore = (policyChoices[bestIdx].effects.eco || 0) - (policyChoices[bestIdx].effects.co2 || 0);

@@ -5,40 +5,40 @@ export interface Building {
   name: string;
   icon: string;
   cost: number;
-  co2: number; // 建造时的一次性效果
-  eco: number; // 建造时的一次性效果
-  income: number; // 每回合收入
-  co2PerTurn: number; // 每回合CO2排放
-  ecoPerTurn: number; // 每回合生态效果
+  co2: number; // One-time effect when building
+  eco: number; // One-time effect when building
+  income: number; // Income per turn
+  co2PerTurn: number; // CO2 emission per turn
+  ecoPerTurn: number; // Ecological effect per turn
 }
 
-// 建筑等级数据
+// Building level data
 export interface BuildingLevel {
   level: number;
   name: string;
   icon: string;
-  cost: number; // 建造/升级成本
-  upgradeCost?: number; // 升级到下一级的成本
-  co2: number; // 建造/升级时的一次性效果
-  eco: number; // 建造/升级时的一次性效果
-  income: number; // 每回合收入
-  co2PerTurn: number; // 每回合CO2排放
-  ecoPerTurn: number; // 每回合生态效果
-  maxLevel: number; // 最大等级
+  cost: number; // Build/upgrade cost
+  upgradeCost?: number; // Cost to upgrade to next level
+  co2: number; // One-time effect when building/upgrading
+  eco: number; // One-time effect when building/upgrading
+  income: number; // Income per turn
+  co2PerTurn: number; // CO2 emission per turn
+  ecoPerTurn: number; // Ecological effect per turn
+  maxLevel: number; // Maximum level
 }
 
-// 建筑升级数据
+// Building upgrade data
 export interface BuildingUpgradeData {
   levels: BuildingLevel[];
 }
 
-// 建筑升级数据
+// Building upgrade data
 export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
   factory: {
     levels: [
       {
         level: 1,
-        name: "小型工厂",
+        name: "Small Factory",
         icon: "🏭",
         cost: 300,
         upgradeCost: 150,
@@ -51,7 +51,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
       },
       {
         level: 2,
-        name: "大型工厂",
+        name: "Large Factory",
         icon: "🏭",
         cost: 400,
         co2: 60,
@@ -67,7 +67,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
     levels: [
       {
         level: 1,
-        name: "普通住宅",
+        name: "Standard Residential",
         icon: "🏘️",
         cost: 200,
         upgradeCost: 100,
@@ -80,7 +80,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
       },
       {
         level: 2,
-        name: "豪华住宅",
+        name: "Luxury Residential",
         icon: "🏘️",
         cost: 300,
         co2: 20,
@@ -96,7 +96,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
     levels: [
       {
         level: 1,
-        name: "小型绿建",
+        name: "Small Green Building",
         icon: "🌳",
         cost: 150,
         upgradeCost: 75,
@@ -109,7 +109,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
       },
       {
         level: 2,
-        name: "绿色科技园",
+        name: "Green Tech Park",
         icon: "🌳",
         cost: 250,
         co2: -30,
@@ -123,7 +123,7 @@ export const buildingUpgradeData: Record<BuildingType, BuildingUpgradeData> = {
   }
 };
 
-// 保持向后兼容的建筑数据（使用1级建筑数据）
+// Backward compatible building data (using level 1 building data)
 export const buildingData: Record<BuildingType, Building> = {
   factory: {
     name: buildingUpgradeData.factory.levels[0].name,
@@ -157,7 +157,7 @@ export const buildingData: Record<BuildingType, Building> = {
   },
 };
 
-// 获取建筑等级数据的辅助函数
+// Helper function to get building level data
 export function getBuildingLevelData(type: BuildingType, level: number): BuildingLevel | null {
   const upgradeData = buildingUpgradeData[type];
   if (!upgradeData || level < 1 || level > upgradeData.levels.length) {
@@ -166,13 +166,13 @@ export function getBuildingLevelData(type: BuildingType, level: number): Buildin
   return upgradeData.levels[level - 1];
 }
 
-// 获取建筑最大等级
+// Get maximum building level
 export function getMaxBuildingLevel(type: BuildingType): number {
   const upgradeData = buildingUpgradeData[type];
   return upgradeData ? upgradeData.levels[0].maxLevel : 1;
 }
 
-// 获取升级成本
+// Get upgrade cost
 export function getUpgradeCost(type: BuildingType, currentLevel: number): number | null {
   const currentLevelData = getBuildingLevelData(type, currentLevel);
   return currentLevelData?.upgradeCost || null;

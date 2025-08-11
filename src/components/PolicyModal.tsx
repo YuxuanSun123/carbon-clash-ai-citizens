@@ -4,7 +4,7 @@ interface PolicyModalProps {
   policy: PolicyChoice;
   onChoice: (choiceIndex: number) => void;
   onClose: () => void;
-  // 多人投票相关props
+  // Multi-player voting related props
   votingInProgress?: boolean;
   playerVotes?: Record<number, number>;
   votedPlayers?: Set<number>;
@@ -45,16 +45,16 @@ const PolicyModal = ({
       parts.push(`🎲 ${effects.diceModifier > 0 ? '+' : ''}${effects.diceModifier}`);
     }
     if (effects.co2PerTurn) {
-      parts.push(`🔄 ${effects.co2PerTurn > 0 ? '+' : ''}${effects.co2PerTurn}/回合`);
+      parts.push(`🔄 ${effects.co2PerTurn > 0 ? '+' : ''}${effects.co2PerTurn}/turn`);
     }
     if (effects.moneyPerTurn !== undefined) {
       if (effects.moneyPerTurn === 0.15) {
-        parts.push(`💸 +15%收入/回合`);
+        parts.push(`💸 +15% income/turn`);
       } else {
-        parts.push(`💸 ${effects.moneyPerTurn > 0 ? '+' : ''}${effects.moneyPerTurn}/回合`);
+        parts.push(`💸 ${effects.moneyPerTurn > 0 ? '+' : ''}${effects.moneyPerTurn}/turn`);
       }
     }
-    return parts.join(' | ') || '无变化';
+    return parts.join(' | ') || 'No change';
   };
 
   return (
@@ -79,17 +79,17 @@ const PolicyModal = ({
           <h2 className="text-2xl font-bold text-white mb-2" style={{ color: '#ffffff' }}>{policy.name}</h2>
           <p className="text-gray-300 text-sm leading-relaxed" style={{ color: '#d1d5db' }}>{policy.description}</p>
           
-          {/* 投票进度显示 */}
+          {/* Voting progress display */}
           {votingInProgress && (
             <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-400/30" style={{
               backgroundColor: 'rgba(59, 130, 246, 0.2)',
               borderColor: 'rgba(96, 165, 250, 0.4)'
             }}>
               <div className="text-blue-300 text-sm font-medium mb-2" style={{ color: '#93c5fd' }}>
-                🗳️ 多人投票进行中
+                🗳️ Multi-player voting in progress
               </div>
               <div className="text-blue-200 text-xs" style={{ color: '#bfdbfe' }}>
-                已投票: {votedPlayers.size} / {totalPlayers} 人
+                Voted: {votedPlayers.size} / {totalPlayers} players
               </div>
               <div className="w-full bg-blue-800 rounded-full h-2 mt-2" style={{ backgroundColor: '#1e40af' }}>
                 <div 
@@ -101,21 +101,21 @@ const PolicyModal = ({
                 ></div>
               </div>
               
-              {/* 显示当前投票玩家 */}
+              {/* Display current voting player */}
               {currentVotingPlayerId !== undefined && (
                 <div className="mt-2 p-2 bg-yellow-900/30 rounded border border-yellow-400/30" style={{
                   backgroundColor: 'rgba(245, 158, 11, 0.2)',
                   borderColor: 'rgba(251, 191, 36, 0.4)'
                 }}>
                   <div className="text-yellow-300 text-xs font-medium" style={{ color: '#fcd34d' }}>
-                    ⏳ 轮到投票: {players.find(p => p.id === currentVotingPlayerId)?.name || `玩家${currentVotingPlayerId}`}
+                    ⏳ Turn to vote: {players.find(p => p.id === currentVotingPlayerId)?.name || `Player ${currentVotingPlayerId}`}
                   </div>
                 </div>
               )}
               
               {votedPlayers.has(currentPlayerId) && (
                 <div className="text-green-300 text-xs mt-2" style={{ color: '#86efac' }}>
-                  ✅ 您已完成投票
+                  ✅ You have completed voting
                 </div>
               )}
             </div>
@@ -147,7 +147,7 @@ const PolicyModal = ({
                   )}
                 </div>
                 <div className="text-sm text-cyan-300" style={{ color: '#0891b2' }}>
-                  效果: {getEffectText(choice.effects)}
+                  Effects: {getEffectText(choice.effects)}
                 </div>
               </button>
             );
@@ -159,7 +159,7 @@ const PolicyModal = ({
           className="w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
           style={{ backgroundColor: '#4b5563', color: '#ffffff' }}
         >
-          跳过选择
+          Skip Choice
         </button>
       </div>
     </div>

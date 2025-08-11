@@ -10,18 +10,18 @@ import {
   getRandomEvent,
   getRandomPolicyChoice 
 } from "../data/events";
-import { getAIBuildingChoiceFromDeepSeek, getAIPolicyChoiceFromDeepSeek, getAIUpgradeChoiceFromDeepSeek } from "../services/deepseekApi";
+import { getAIChoiceFromDeepSeek, getAIPolicyChoiceFromDeepSeek, getAIUpgradeChoiceFromDeepSeek } from "../services/deepseekApi";
 
-// 玩家类型
+// Player types
 export type PlayerType = 'human' | 'ai-income' | 'ai-eco';
 
-// 建筑信息结构
+// Building information structure
 export interface BuildingInfo {
   type: BuildingType;
   level: number;
 }
 
-// 玩家数据结构
+// Player data structure
 export interface Player {
   id: number;
   type: PlayerType;
@@ -33,20 +33,20 @@ export interface Player {
   built: Record<string, BuildingInfo>;
   passedStart: boolean;
   skipTurns: number;
-  diceModifier: number; // 骰子点数修改器
-  co2PerTurn: number; // 每回合额外CO2排放
-  moneyPerTurn: number; // 每回合金币消耗（负数为消耗）
+  diceModifier: number; // Dice roll modifier
+  co2PerTurn: number; // Additional CO2 emissions per turn
+  moneyPerTurn: number; // Money consumption per turn (negative for consumption)
 }
 
 
 
 export const useMultiPlayerGameState = () => {
-  // 初始化三个玩家
+  // Initialize three players
   const [players, setPlayers] = useState<Player[]>([
     {
       id: 0,
       type: 'human',
-      name: '玩家',
+      name: 'Player',
       position: 0,
       money: 1000,
       co2: 0,
@@ -61,7 +61,7 @@ export const useMultiPlayerGameState = () => {
     {
       id: 1,
       type: 'ai-income',
-      name: 'AI商业家',
+      name: 'AI Business',
       position: 0,
       money: 1000,
       co2: 0,
@@ -76,7 +76,7 @@ export const useMultiPlayerGameState = () => {
     {
       id: 2,
       type: 'ai-eco',
-      name: 'AI环保家',
+      name: 'AI Environmentalist',
       position: 0,
       money: 1000,
       co2: 0,
@@ -95,7 +95,7 @@ export const useMultiPlayerGameState = () => {
   const [turnCount, setTurnCount] = useState(0);
   const [gamePhase, setGamePhase] = useState<'rolling' | 'building' | 'waiting' | 'ended'>('rolling');
 
-  // 游戏结束状态
+  // Game end state
   const [gameResult, setGameResult] = useState<{
     isEnded: boolean;
     winner: Player | null;
@@ -103,7 +103,7 @@ export const useMultiPlayerGameState = () => {
     scores: { playerId: number; score: number; rank: number }[];
   }>({ isEnded: false, winner: null, reason: '', scores: [] });
 
-  // 事件系统状态
+  // Event system state
   const [currentEvent, setCurrentEvent] = useState<GameEvent | null>(null);
   const [currentPolicy, setCurrentPolicy] = useState<PolicyChoice | null>(null);
   const [eventHistory, setEventHistory] = useState<string[]>([]);
@@ -111,7 +111,7 @@ export const useMultiPlayerGameState = () => {
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   // const [pendingPolicyPlayer, setPendingPolicyPlayer] = useState<number | null>(null);
   
-  // 多人投票系统状态
+  // Multiplayer voting system state
   const [votingInProgress, setVotingInProgress] = useState(false);
   const [playerVotes, setPlayerVotes] = useState<Record<number, number>>({});
   const [votedPlayers, setVotedPlayers] = useState<Set<number>>(new Set());
@@ -123,41 +123,41 @@ export const useMultiPlayerGameState = () => {
   } | null>(null);
   const [showPolicyResult, setShowPolicyResult] = useState(false);
   
-  // 交通方式选择状态
+  // Transport mode selection state
   const [showTransportModal, setShowTransportModal] = useState(false);
   const [pendingTransportPlayer, setPendingTransportPlayer] = useState<number | null>(null);
   
-  // 游戏常量
-  const CO2_JAIL_THRESHOLD = 300; // 碳排放监狱阈值
-  const START_BONUS = 500; // 再次到达起点的奖励
+  // Game constants
+  const CO2_JAIL_THRESHOLD = 300; // CO2 emission jail threshold
+  const START_BONUS = 500; // Bonus for reaching start again
 
   const currentPlayer = players[currentPlayerIndex];
 
-  // 游戏常量
-  const MAX_TURNS = 30; // 最大回合数
-  const MAX_CO2 = Infinity; // 单个玩家CO2无限制
-  const GLOBAL_CO2_LIMIT = 1000; // 全球CO2总和上限
-  const BANKRUPTCY_THRESHOLD = -500; // 破产阈值
+  // Game constants
+  const MAX_TURNS = 30; // Maximum number of turns
+  const MAX_CO2 = Infinity; // No CO2 limit for individual players
+  const GLOBAL_CO2_LIMIT = 1000; // Global CO2 total limit
+  const BANKRUPTCY_THRESHOLD = -500; // Bankruptcy threshold
 
-  // AI决策延迟
+  // AI decision delay
   const [aiThinking, setAiThinking] = useState(false);
 
-  // AI自动行动逻辑
+  // AI automatic action logic
   useEffect(() => {
     if (aiThinking && currentPlayer.type !== 'human' && gamePhase === 'rolling') {
-      console.log(`AI玩家 ${currentPlayer.name} 自动掷骰子`);
+      console.log(`AI player ${currentPlayer.name} automatically rolls dice`);
       const timer = setTimeout(() => {
         let finalRoll;
         
         if (currentPlayer.diceModifier === -999) {
-          // 公交出行：只能投出1,3,5,7点数
+          // Bus travel: can only roll 1,3,5,7 points
           const busRolls = [1, 3, 5, 7];
           finalRoll = busRolls[Math.floor(Math.random() * busRolls.length)];
-          console.log(`AI玩家 ${currentPlayer.name} 使用公交出行，掷出 ${finalRoll} 点`);
+          console.log(`AI player ${currentPlayer.name} uses bus travel, rolled ${finalRoll} points`);
         } else {
           const baseRoll = Math.floor(Math.random() * 6) + 1;
-          finalRoll = Math.max(1, Math.min(6, baseRoll + currentPlayer.diceModifier)); // 应用骰子修改器，限制在1-6范围内
-          console.log(`AI玩家 ${currentPlayer.name} 掷出 ${baseRoll} 点 (修改器: ${currentPlayer.diceModifier > 0 ? '+' : ''}${currentPlayer.diceModifier}) = ${finalRoll} 点`);
+          finalRoll = Math.max(1, Math.min(6, baseRoll + currentPlayer.diceModifier)); // Apply dice modifier, limit to 1-6 range
+          console.log(`AI player ${currentPlayer.name} rolled ${baseRoll} points (modifier: ${currentPlayer.diceModifier > 0 ? '+' : ''}${currentPlayer.diceModifier}) = ${finalRoll} points`);
         }
         
         setAiThinking(false);
@@ -168,83 +168,83 @@ export const useMultiPlayerGameState = () => {
     }
   }, [aiThinking, currentPlayer, gamePhase]);
 
-  // 计算玩家得分
+  // Calculate player score
   const calculatePlayerScore = (player: Player): number => {
-    // 综合评分系统：金钱 + 生态效益 - CO2惩罚 + 建筑数量奖励
-    const moneyScore = player.money * 0.5; // 金钱权重0.5
-    const ecoScore = player.eco * 10; // 生态效益权重10
-    const co2Penalty = player.co2 * -2; // CO2惩罚权重-2
-    const buildingBonus = Object.keys(player.built).length * 50; // 每个建筑50分奖励
+    // Comprehensive scoring system: money + eco benefits - CO2 penalty + building count bonus
+    const moneyScore = player.money * 0.5; // Money weight 0.5
+    const ecoScore = player.eco * 10; // Eco benefit weight 10
+    const co2Penalty = player.co2 * -2; // CO2 penalty weight -2
+    const buildingBonus = Object.keys(player.built).length * 50; // 50 points bonus per building
     
     return Math.round(moneyScore + ecoScore + co2Penalty + buildingBonus);
   };
 
-  // 检查游戏结束条件
+  // Check game end conditions
   const checkGameEnd = useCallback(() => {
     if (gameResult.isEnded) return;
 
-    // 检查回合数限制
+    // Check turn limit
     if (turnCount >= MAX_TURNS) {
-      endGame('回合数达到上限', '时间结束');
+      endGame('Turn limit reached', 'Time up');
       return;
     }
 
-    // 检查破产条件
+    // Check bankruptcy conditions
     const bankruptPlayers = players.filter(p => p.money <= BANKRUPTCY_THRESHOLD);
     if (bankruptPlayers.length > 0) {
       const survivingPlayers = players.filter(p => p.money > BANKRUPTCY_THRESHOLD);
       if (survivingPlayers.length === 1) {
-        endGame('其他玩家破产', `${survivingPlayers[0].name} 获胜`);
+        endGame('Other players bankrupt', `${survivingPlayers[0].name} wins`);
         return;
       }
     }
 
-    // 检查全球CO2总和限制
+    // Check global CO2 total limit
     const totalCO2 = players.reduce((sum, player) => sum + player.co2, 0);
     if (totalCO2 >= GLOBAL_CO2_LIMIT) {
-      endGame('全球环境危机', `全球CO2总排放量达到${GLOBAL_CO2_LIMIT}，环境崩溃！`);
+      endGame('Global Environmental Crisis', `Global CO2 emissions reached ${GLOBAL_CO2_LIMIT}, environmental collapse!`);
       return;
     }
 
-    // 检查是否有玩家达到超高分数（提前胜利）
+    // Check if any player reached super high score (early victory)
     const scores = players.map(p => calculatePlayerScore(p));
     const maxScore = Math.max(...scores);
     if (maxScore >= 3000) {
       const winner = players[scores.indexOf(maxScore)];
-      endGame('达到胜利分数', `${winner.name} 提前获胜`);
+      endGame('Victory Score Reached', `${winner.name} wins early`);
       return;
     }
   }, [players, turnCount, gameResult.isEnded]);
 
-  // 监听投票状态变化，自动触发下一个玩家投票或结束投票
+  // Listen to voting status changes, automatically trigger next player vote or end voting
   useEffect(() => {
     if (!votingInProgress || !currentPolicy) return;
     
-    console.log(`🔄 投票状态变化检查: 已投票 ${votedPlayers.size}/${players.length} 人`);
+    console.log(`🔄 Voting status check: ${votedPlayers.size}/${players.length} players voted`);
     
-    // 检查是否所有玩家都已投票
+    // Check if all players have voted
     if (votedPlayers.size >= players.length) {
-      console.log(`🏁 所有玩家已投票，准备结束投票`);
+      console.log(`🏁 All players voted, preparing to end voting`);
       setTimeout(() => {
         finalizePolicyVoting();
       }, 1000);
     } else if (votedPlayers.size > 0) {
-      // 只有在有人投票后才触发下一个玩家投票
-      console.log(`➡️ 继续下一个玩家投票`);
+      // Only trigger next player vote after someone has voted
+      console.log(`➡️ Continue to next player vote`);
       setTimeout(() => {
         triggerNextPlayerVote();
       }, 500);
     }
   }, [votedPlayers, votingInProgress, currentPolicy, players.length]);
 
-  // 结束游戏
+  // End game
   const endGame = (reason: string, message: string) => {
     const scores = players.map(player => ({
       playerId: player.id,
       score: calculatePlayerScore(player)
     }));
     
-    // 按分数排序
+    // Sort by score
     scores.sort((a, b) => b.score - a.score);
     const rankedScores = scores.map((score, index) => ({
       ...score,
@@ -261,17 +261,17 @@ export const useMultiPlayerGameState = () => {
     });
     
     setGamePhase('ended');
-    console.log(`游戏结束: ${reason} - ${message}`);
+    console.log(`Game ended: ${reason} - ${message}`);
   };
 
-  // 重新开始游戏
+  // Restart game
   const restartGame = () => {
-    // 重置所有状态
+    // Reset all states
     setPlayers([
       {
         id: 0,
         type: 'human',
-        name: '玩家',
+        name: 'Player',
         position: 0,
         money: 1000,
         co2: 0,
@@ -286,7 +286,7 @@ export const useMultiPlayerGameState = () => {
       {
         id: 1,
         type: 'ai-income',
-        name: 'AI商业家',
+        name: 'AI Business',
         position: 0,
         money: 1000,
         co2: 0,
@@ -301,7 +301,7 @@ export const useMultiPlayerGameState = () => {
       {
         id: 2,
         type: 'ai-eco',
-        name: 'AI环保家',
+        name: 'AI Eco',
         position: 0,
         money: 1000,
         co2: 0,
@@ -326,7 +326,7 @@ export const useMultiPlayerGameState = () => {
     setShowEventModal(false);
     setShowPolicyModal(false);
     // setPendingPolicyPlayer(null);
-    // 重置投票状态
+    // Reset voting status
      setVotingInProgress(false);
      setPlayerVotes({});
      setVotedPlayers(new Set());
@@ -479,7 +479,7 @@ export const useMultiPlayerGameState = () => {
         if (players[playerId].type === 'human') {
           setShowTransportModal(true);
         } else {
-          // AI自动选择交通方式
+          // AI automatically chooses transport mode
           setTimeout(() => {
             const aiChoice = players[playerId].type === 'ai-eco' ? 1 : // 环保AI选择自行车
                            players[playerId].type === 'ai-income' ? 2 : // 商业AI选择汽车
@@ -619,7 +619,7 @@ export const useMultiPlayerGameState = () => {
       
       // 使用DeepSeek API进行升级选择
       const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
-      const shouldUpgrade = await getAIUpgradeChoiceFromDeepSeek(player, players, apiGamePhase, turnCount, upgradableBuildings);
+      const shouldUpgrade = await getAIUpgradeChoiceFromDeepSeek(player, upgradableBuildings, players, turnCount, apiGamePhase);
       console.log(`✅ DeepSeek API升级决策成功! 玩家 ${player.name} 决定: ${shouldUpgrade ? '升级' : '不升级'}`);
       console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
       return shouldUpgrade;
@@ -696,7 +696,7 @@ export const useMultiPlayerGameState = () => {
       
       // 使用DeepSeek API进行建筑选择（传入位置修正后的玩家信息）
       const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
-      const choice = await getAIBuildingChoiceFromDeepSeek(playerWithCorrectPosition, players, apiGamePhase, turnCount);
+      const choice = await getAIChoiceFromDeepSeek(playerWithCorrectPosition, players, apiGamePhase, turnCount);
       console.log(`✅ DeepSeek API决策成功! 玩家 ${player.name} 选择: ${choice || 'none'}`);
       console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
       return choice;
@@ -1004,8 +1004,8 @@ export const useMultiPlayerGameState = () => {
       rentAmount = rentMap[buildingInfo.type] || 0;
       rentPaidTo = buildingOwner.id;
       
-      // 添加事件历史记录
-      setEventHistory(prev => [...prev, `${player.name} 向 ${buildingOwner.name} 支付租金 ${rentAmount} 金币（${buildingInfo.type === 'factory' ? '工厂' : buildingInfo.type === 'residential' ? '住宅' : '绿色建筑'}）`]);
+      // Add event history record
+      setEventHistory(prev => [...prev, `${player.name} paid rent ${rentAmount} coins to ${buildingOwner.name} (${buildingInfo.type === 'factory' ? 'Factory' : buildingInfo.type === 'residential' ? 'Residential' : 'Green Building'})`]);
     }
     
     setPlayers(prev => prev.map(p => {
@@ -1469,10 +1469,10 @@ export const useMultiPlayerGameState = () => {
       applyEventEffects(player.id, winningChoice.effects);
     });
     
-    // 记录事件历史
+    // Record event history
     setEventHistory(prev => [
       ...prev, 
-      `政策投票: ${currentPolicy.name} - ${winningChoice.text} (${maxVotes}票获胜)`
+      `Policy Vote: ${currentPolicy.name} - ${winningChoice.text} (${maxVotes} votes won)`
     ]);
     
     // 设置结果状态
@@ -1499,18 +1499,18 @@ export const useMultiPlayerGameState = () => {
     // 移除自动关闭，让用户手动关闭结果弹窗
   };
   
-  // 关闭政策结果弹窗
+  // Close policy result modal
   const closePolicyResult = () => {
     setShowPolicyResult(false);
     setPolicyResult(null);
     
-    // 继续游戏流程
+    // Continue game flow
     setTimeout(() => {
       nextTurn();
     }, 500);
   };
   
-  // 处理政策选择（兼容旧接口）
+  // Handle policy choice (compatible with old interface)
   const handlePolicyChoice = (choiceIndex: number) => {
     const humanPlayer = players.find(p => p.type === 'human');
     if (humanPlayer && votingInProgress) {
@@ -1518,21 +1518,21 @@ export const useMultiPlayerGameState = () => {
     }
   };
 
-  // 处理交通方式选择
+  // Handle transport choice
   const handleTransportChoice = (choiceIndex: number) => {
     if (pendingTransportPlayer !== null) {
       const transportChoices = [
-        { name: "步行出行", effects: { diceModifier: 0 } },
-        { name: "自行车出行", effects: { diceModifier: 1, moneyPerTurn: -5 } },
-        { name: "汽车出行", effects: { diceModifier: 2, co2PerTurn: 5, moneyPerTurn: -10 } },
-        { name: "公交出行", effects: { diceModifier: -999, moneyPerTurn: -3 } }
+        { name: "Walking", effects: { diceModifier: 0 } },
+        { name: "Bicycle", effects: { diceModifier: 1, moneyPerTurn: -5 } },
+        { name: "Car", effects: { diceModifier: 2, co2PerTurn: 5, moneyPerTurn: -10 } },
+        { name: "Bus", effects: { diceModifier: -999, moneyPerTurn: -3 } }
       ];
       
       const choice = transportChoices[choiceIndex];
       
       setPlayers(prev => prev.map(p => {
         if (p.id === pendingTransportPlayer) {
-          // 重置之前的交通方式效果
+          // Reset previous transport effects
           const resetPlayer = {
             ...p,
             diceModifier: 0,
@@ -1540,7 +1540,7 @@ export const useMultiPlayerGameState = () => {
             moneyPerTurn: 0
           };
           
-          // 应用新的交通方式效果
+          // Apply new transport effects
           return {
             ...resetPlayer,
             diceModifier: choice.effects.diceModifier || 0,
@@ -1551,7 +1551,7 @@ export const useMultiPlayerGameState = () => {
         return p;
       }));
       
-      setEventHistory(prev => [...prev, `${players[pendingTransportPlayer].name} 选择了 ${choice.name}`]);
+      setEventHistory(prev => [...prev, `${players[pendingTransportPlayer].name} chose ${choice.name}`]);
     }
     
     setShowTransportModal(false);
@@ -1560,96 +1560,96 @@ export const useMultiPlayerGameState = () => {
 
 
   
-  // 检查碳排放监狱
+  // Check CO2 jail
   const checkCO2Jail = (playerId: number) => {
     const player = players.find(p => p.id === playerId);
     if (player && player.co2 >= CO2_JAIL_THRESHOLD) {
-      // 传送到监狱格子（位置10）并跳过2回合
+      // Transport to jail cell (position 10) and skip 2 turns
       setPlayers(prev => prev.map(p => 
         p.id === playerId ? { ...p, position: 10, skipTurns: 2 } : p
       ));
-      setEventHistory(prev => [...prev, `${player.name} 因碳排放超标被送入监狱，跳过2回合！`]);
+      setEventHistory(prev => [...prev, `${player.name} sent to jail for excessive CO2 emissions, skip 2 turns!`]);
       return true;
     }
     return false;
   };
   
-  // 处理特殊格子效果
+  // Handle special cell effects
   const handleSpecialCell = (position: number, playerId: number) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
     
     switch (position) {
-      case 0: // 起点
+      case 0: // Start
         if (player.passedStart) {
           setPlayers(prev => prev.map(p => 
             p.id === playerId ? { ...p, money: p.money + START_BONUS } : p
           ));
-          setEventHistory(prev => [...prev, `${player.name} 再次到达起点，获得 ${START_BONUS} 金币奖励！`]);
+          setEventHistory(prev => [...prev, `${player.name} reached start again, received ${START_BONUS} coin bonus!`]);
         }
         break;
         
-      case 10: // 监狱
-        // 到达监狱格子直接轮空2回合
+      case 10: // Jail
+        // Arriving at jail cell directly skips 2 turns
         setPlayers(prev => prev.map(p => 
           p.id === playerId ? { ...p, skipTurns: p.skipTurns + 2 } : p
         ));
-        setEventHistory(prev => [...prev, `${player.name} 到达监狱，被关押2回合！`]);
+        setEventHistory(prev => [...prev, `${player.name} arrived at jail, imprisoned for 2 turns!`]);
         break;
         
-      case 20: // 免费停车
+      case 20: // Free parking
         setPendingTransportPlayer(playerId);
         if (player.type === 'human') {
           setShowTransportModal(true);
         } else {
           // AI自动选择交通方式
           setTimeout(() => {
-            const aiChoice = player.type === 'ai-eco' ? 1 : // 环保AI选择自行车
-                           player.type === 'ai-income' ? 2 : // 商业AI选择汽车
-                           0; // 默认步行
+            const aiChoice = player.type === 'ai-eco' ? 1 : // Eco AI chooses bicycle
+                           player.type === 'ai-income' ? 2 : // Business AI chooses car
+                           0; // Default walking
             handleTransportChoice(aiChoice);
           }, 1000);
         }
         break;
         
-      case 30: // 警察局
-        // 碳排放检查：如果碳排放超过300，拘留一回合
+      case 30: // Police station
+        // CO2 emission check: if CO2 exceeds 300, detain for one turn
         if (player.co2 > 300) {
           setPlayers(prev => prev.map(p => 
             p.id === playerId ? { ...p, skipTurns: p.skipTurns + 1 } : p
           ));
-          setEventHistory(prev => [...prev, `${player.name} 因碳排放超标（${player.co2}）被警察局拘留，跳过下一回合！`]);
+          setEventHistory(prev => [...prev, `${player.name} detained by police for excessive CO2 emissions (${player.co2}), skip next turn!`]);
         } else {
-          setEventHistory(prev => [...prev, `${player.name} 到达警察局，碳排放检查通过（${player.co2}/300）`]);
+          setEventHistory(prev => [...prev, `${player.name} arrived at police station, CO2 emission check passed (${player.co2}/300)`]);
         }
         break;
     }
   };
   
-  // 关闭事件弹窗
+  // Close event modal
   const closeEventModal = () => {
     setCurrentEvent(null);
     setShowEventModal(false);
     
-    // 如果当前是人类玩家且游戏阶段为等待，关闭事件弹窗后自动进入下一回合
+    // If current is human player and game phase is waiting, automatically enter next turn after closing event modal
     if (currentPlayer.type === 'human' && gamePhase === 'waiting') {
       setTimeout(() => {
         nextTurn();
-      }, 300); // 给用户一点时间看到弹窗关闭
+      }, 300); // Give user some time to see modal close
     }
   };
 
-  // 关闭政策弹窗
+  // Close policy modal
   const closePolicyModal = () => {
     setCurrentPolicy(null);
     setShowPolicyModal(false);
     // setPendingPolicyPlayer(null);
   };
 
-  // 获取当前玩家位置
+  // Get current player position
   const getCurrentPosition = () => pathCoordinates[currentPlayer.position];
 
-  // 获取所有建筑（用于地图显示）
+  // Get all buildings (for map display)
   const getAllBuildings = (): Record<string, BuildingInfo> => {
     const allBuildings: Record<string, BuildingInfo> = {};
     players.forEach(player => {
@@ -1661,7 +1661,7 @@ export const useMultiPlayerGameState = () => {
     return allBuildings;
   };
 
-  // 计算总收入
+  // Calculate total income
   const getTotalIncome = () => {
     return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
       const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
@@ -1669,7 +1669,7 @@ export const useMultiPlayerGameState = () => {
     }, 0);
   };
 
-  // 计算每回合CO2排放
+  // Calculate CO2 emissions per turn
   const getTotalCO2PerTurn = () => {
     return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
       const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
@@ -1677,7 +1677,7 @@ export const useMultiPlayerGameState = () => {
     }, 0);
   };
 
-  // 计算每回合生态效果
+  // Calculate ecological effects per turn
   const getTotalEcoPerTurn = () => {
     return Object.values(currentPlayer.built).reduce((total, buildingInfo) => {
       const levelData = getBuildingLevelData(buildingInfo.type, buildingInfo.level);
@@ -1685,7 +1685,7 @@ export const useMultiPlayerGameState = () => {
     }, 0);
   };
 
-  // 包装函数用于当前玩家
+  // Wrapper functions for current player
   const canUpgradeHere = (playerId?: number) => {
     const targetPlayerId = playerId || currentPlayer.id;
     return canUpgradeHereForPlayer(targetPlayerId);
@@ -1697,18 +1697,18 @@ export const useMultiPlayerGameState = () => {
   };
 
   return {
-    // 玩家相关
+    // Player related
     players,
     currentPlayer,
     currentPlayerIndex,
     
-    // 游戏状态
+    // Game state
     diceRoll,
     turnCount,
     gamePhase,
     aiThinking,
     
-    // 位置和建筑
+    // Position and buildings
     getCurrentPosition,
     getAllBuildings,
     canBuildHere,
@@ -1716,16 +1716,16 @@ export const useMultiPlayerGameState = () => {
     canUpgradeHere,
     upgradeAtCurrent,
     
-    // 游戏控制
+    // Game control
     movePlayer,
     nextTurn,
     
-    // 资源计算
+    // Resource calculation
     getTotalIncome,
     getTotalCO2PerTurn,
     getTotalEcoPerTurn,
     
-    // 事件系统
+    // Event system
     currentEvent,
     currentPolicy,
     eventHistory,
@@ -1735,7 +1735,7 @@ export const useMultiPlayerGameState = () => {
     closeEventModal,
     closePolicyModal,
     
-    // 多人投票系统
+    // Multiplayer voting system
     votingInProgress,
     playerVotes,
     votedPlayers,
@@ -1745,12 +1745,12 @@ export const useMultiPlayerGameState = () => {
     handlePolicyVote,
     closePolicyResult,
     
-    // 交通方式选择
+    // Transport mode selection
     showTransportModal,
     setShowTransportModal,
     handleTransportChoice,
     
-    // 游戏结束系统
+    // Game end system
     gameResult,
     calculatePlayerScore,
     checkGameEnd,
@@ -1760,7 +1760,7 @@ export const useMultiPlayerGameState = () => {
     GLOBAL_CO2_LIMIT,
     BANKRUPTCY_THRESHOLD,
     
-    // 调试功能
+    // Debug functions
     debugAddMoney: (playerId: number, amount: number) => {
       setPlayers(prev => prev.map(p => 
         p.id === playerId ? { ...p, money: Math.max(0, p.money + amount) } : p

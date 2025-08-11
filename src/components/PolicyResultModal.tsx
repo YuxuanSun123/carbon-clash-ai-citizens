@@ -40,16 +40,16 @@ const PolicyResultModal = ({
       parts.push(`🎲 ${effects.diceModifier > 0 ? '+' : ''}${effects.diceModifier}`);
     }
     if (effects.co2PerTurn) {
-      parts.push(`🔄 ${effects.co2PerTurn > 0 ? '+' : ''}${effects.co2PerTurn}/回合`);
+      parts.push(`🔄 ${effects.co2PerTurn > 0 ? '+' : ''}${effects.co2PerTurn}/turn`);
     }
     if (effects.moneyPerTurn !== undefined) {
       if (effects.moneyPerTurn === 0.15) {
-        parts.push(`💸 +15%收入/回合`);
+        parts.push(`💸 +15% income/turn`);
       } else {
-        parts.push(`💸 ${effects.moneyPerTurn > 0 ? '+' : ''}${effects.moneyPerTurn}/回合`);
+        parts.push(`💸 ${effects.moneyPerTurn > 0 ? '+' : ''}${effects.moneyPerTurn}/turn`);
       }
     }
-    return parts.join(' | ') || '无变化';
+    return parts.join(' | ') || 'No change';
   };
 
   return (
@@ -68,19 +68,19 @@ const PolicyResultModal = ({
       <div className="bg-gradient-to-br from-green-800 via-emerald-900 to-green-800 p-6 rounded-2xl shadow-2xl max-w-lg mx-4 border border-green-400/30 backdrop-blur-md animate-bounce">
         <div className="text-center mb-6">
           <div className="text-6xl mb-3 animate-pulse">🏆</div>
-          <h2 className="text-2xl font-bold text-white mb-2" style={{ color: '#ffffff' }}>政策投票结果</h2>
+          <h2 className="text-2xl font-bold text-white mb-2" style={{ color: '#ffffff' }}>Policy Voting Results</h2>
           <div className="text-green-300 text-lg font-semibold mb-2" style={{ color: '#059669' }}>{policy.name}</div>
           <p className="text-gray-300 text-sm leading-relaxed" style={{ color: '#6b7280' }}>{policy.description}</p>
         </div>
         
-        {/* 获胜选项 */}
+        {/* Winning option */}
         <div className="bg-green-900/40 backdrop-blur-sm p-4 rounded-xl mb-4 border border-green-400/30" style={{
           backgroundColor: 'rgba(220, 252, 231, 0.9)',
           borderColor: 'rgba(34, 197, 94, 0.5)'
         }}>
           <div className="flex items-center justify-center mb-3">
             <div className="text-yellow-400 text-2xl mr-2">👑</div>
-            <h3 className="text-lg font-bold text-green-300" style={{ color: '#059669' }}>获胜政策</h3>
+            <h3 className="text-lg font-bold text-green-300" style={{ color: '#059669' }}>Winning Policy</h3>
           </div>
           
           <div className="bg-green-800/50 p-4 rounded-lg border border-green-400/20" style={{
@@ -95,7 +95,7 @@ const PolicyResultModal = ({
               </div>
             </div>
             <div className="text-cyan-300 font-medium" style={{ color: '#0891b2' }}>
-              效果: {getEffectText(winningChoice.effects)}
+              Effects: {getEffectText(winningChoice.effects)}
             </div>
             <div className="mt-2">
               <div className="w-full bg-green-700 rounded-full h-2" style={{ backgroundColor: '#d1d5db' }}>
@@ -108,18 +108,18 @@ const PolicyResultModal = ({
                 ></div>
               </div>
               <div className="text-green-200 text-sm mt-1 text-center" style={{ color: '#374151' }}>
-                {winningVotes} / {totalPlayers} 票 ({Math.round((winningVotes / totalPlayers) * 100)}%)
+                {winningVotes} / {totalPlayers} votes ({Math.round((winningVotes / totalPlayers) * 100)}%)
               </div>
             </div>
           </div>
         </div>
         
-        {/* 所有选项的投票结果 */}
+        {/* Voting results for all options */}
         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl mb-4 border border-gray-300/50" style={{
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
           borderColor: 'rgba(156, 163, 175, 0.6)'
         }}>
-          <h3 className="text-sm font-semibold text-gray-800 mb-3" style={{ color: '#1f2937' }}>完整投票结果：</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3" style={{ color: '#1f2937' }}>Complete Voting Results:</h3>
           <div className="space-y-2">
             {policy.choices.map((choice, index) => {
               const choiceVotes = votes[index] || 0;
@@ -173,7 +173,7 @@ const PolicyResultModal = ({
         
         <div className="text-center mb-4">
           <div className="text-green-300 text-sm" style={{ color: '#059669' }}>
-            💫 政策效果已应用到所有玩家
+            💫 Policy effects have been applied to all players
           </div>
         </div>
         
@@ -182,7 +182,7 @@ const PolicyResultModal = ({
           className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl hover:from-green-700 hover:to-emerald-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
           style={{ backgroundColor: '#059669', color: '#ffffff' }}
         >
-          继续游戏
+          Continue Game
         </button>
       </div>
     </div>

@@ -89,16 +89,16 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 text-white relative">
-      {/* 顶部导航栏 */}
+      {/* Top navigation bar */}
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="text-3xl">🌍</div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Carbon Clash - 多人模式
+                Carbon Clash - Multiplayer
               </h1>
-              <p className="text-sm text-gray-300">环保策略棋盘游戏</p>
+              <p className="text-sm text-gray-300">Environmental Strategy Board Game</p>
             </div>
           </div>
           
@@ -108,17 +108,17 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 onClick={onBackToMenu}
                 className="bg-gray-600/50 hover:bg-gray-600/70 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium"
               >
-                ← 返回主菜单
+                ← Back to Main Menu
               </button>
             )}
             <div className="flex items-center gap-4 text-sm">
-              {/* 回合进度 */}
+              {/* Turn progress */}
               <div className="text-gray-300">
-                回合 <span className="text-cyan-400 font-bold">{turnCount}</span>
+                Turn <span className="text-cyan-400 font-bold">{turnCount}</span>
                 <span className="text-gray-500">/{MAX_TURNS}</span>
               </div>
               
-              {/* 全球CO2警告 */}
+              {/* Global CO2 warning */}
               {(() => {
                 const totalCO2 = players.reduce((total, p) => total + p.co2, 0);
                 const warningThreshold = GLOBAL_CO2_LIMIT * 0.8;
@@ -126,7 +126,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                   return (
                     <div className="bg-red-500/20 border border-red-500/50 rounded-lg px-2 py-1">
                       <span className="text-red-300 text-xs font-medium">
-                        🌍 全球CO2危险: {totalCO2}/{GLOBAL_CO2_LIMIT}
+                        🌍 Global CO2 Crisis: {totalCO2}/{GLOBAL_CO2_LIMIT}
                       </span>
                     </div>
                   );
@@ -134,35 +134,35 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 return null;
               })()}
               
-              {/* 破产警告 */}
+              {/* Bankruptcy warning */}
               {currentPlayer.money < BANKRUPTCY_THRESHOLD && (
                 <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg px-2 py-1">
                   <span className="text-orange-300 text-xs font-medium">
-                    ⚠️ 资金不足
+                    ⚠️ Insufficient Funds
                   </span>
                 </div>
               )}
             </div>
             {currentPlayer.skipTurns > 0 && (
               <div className="bg-red-500/20 border border-red-500/50 rounded-lg px-3 py-1">
-                <span className="text-red-300 text-sm font-medium">⏸️ 跳过 {currentPlayer.skipTurns} 回合</span>
+                <span className="text-red-300 text-sm font-medium">⏸️ Skip {currentPlayer.skipTurns} turn(s)</span>
               </div>
             )}
             {aiThinking && (
               <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg px-3 py-1">
-                <span className="text-purple-300 text-sm font-medium">🤖 AI思考中...</span>
+                <span className="text-purple-300 text-sm font-medium">🤖 AI Thinking...</span>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* 主游戏区域 */}
+      {/* Main game area */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* 左侧地图区域 */}
+        {/* Left map area */}
         <div className="flex-1 p-2 flex flex-col items-center justify-center min-h-0">
           <div className="relative w-full h-full flex flex-col items-center justify-center">
-            {/* 当前玩家指示器 */}
+            {/* Current player indicator */}
             <div className="mb-4 bg-black/40 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/20">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{getPlayerIcon(currentPlayer.id)}</span>
@@ -171,11 +171,11 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                     {currentPlayer.name}
                   </div>
                   <div className="text-sm text-gray-400">
-                    {gamePhase === 'rolling' && currentPlayer.type === 'human' && '请掷骰子'}
-                    {gamePhase === 'rolling' && currentPlayer.type !== 'human' && 'AI回合'}
-                    {gamePhase === 'building' && currentPlayer.type === 'human' && '可以建造建筑'}
-                    {gamePhase === 'building' && currentPlayer.type !== 'human' && 'AI决策中'}
-                    {gamePhase === 'waiting' && '等待中'}
+                    {gamePhase === 'rolling' && currentPlayer.type === 'human' && 'Please roll dice'}
+                    {gamePhase === 'rolling' && currentPlayer.type !== 'human' && 'AI Turn'}
+                    {gamePhase === 'building' && currentPlayer.type === 'human' && 'Can build structures'}
+                    {gamePhase === 'building' && currentPlayer.type !== 'human' && 'AI Deciding'}
+                    {gamePhase === 'waiting' && 'Waiting'}
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
               />
             </div>
             
-            {/* 地图底部控制区 */}
+            {/* Map bottom control area */}
             <div className="mt-4 flex justify-center gap-4 flex-shrink-0">
               {currentPlayer.type === 'human' && gamePhase === 'rolling' && (
                 <DiceRoller onRoll={movePlayer} diceModifier={currentPlayer.diceModifier} />
@@ -207,16 +207,16 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                   onClick={nextTurn}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
                 >
-                  结束回合
+                  End Turn
                 </button>
               )}
               {diceRoll !== null && (
                 <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
                   <span className="text-purple-300 font-semibold">
-                    🎯 掷出：{diceRoll} 点
+                    🎯 Rolled: {diceRoll} points
                   </span>
                   {currentPlayer.skipTurns > 0 && (
-                    <span className="text-red-400 ml-2">(被跳过)</span>
+                    <span className="text-red-400 ml-2">(Skipped)</span>
                   )}
                 </div>
               )}
@@ -224,12 +224,12 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
           </div>
         </div>
 
-        {/* 右侧数据面板 */}
+        {/* Right data panel */}
         <div className="w-80 bg-black/20 backdrop-blur-md border-l border-white/10 p-4 overflow-y-auto flex-shrink-0">
-          {/* 所有玩家状态 */}
+          {/* All players status */}
           <div className="mb-6">
             <h2 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
-              👥 玩家状态
+              👥 Player Status
             </h2>
             <div className="space-y-3">
               {players.map((player, index) => (
@@ -248,7 +248,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                     </span>
                     {index === currentPlayerIndex && (
                       <span className="text-xs bg-cyan-500 text-white px-2 py-1 rounded-full">
-                        当前
+                        Current
                       </span>
                     )}
                   </div>
@@ -271,17 +271,17 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
             </div>
           </div>
 
-          {/* 当前玩家详细资源状态 */}
+          {/* Current player detailed resource status */}
           <div className="mb-6">
             <h2 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
-              📊 {currentPlayer.name} 详细状态
+              📊 {currentPlayer.name} Detailed Status
             </h2>
             <div className="space-y-3">
               <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-500/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">💰</span>
-                    <span className="text-gray-300">金钱</span>
+                    <span className="text-gray-300">Money</span>
                   </div>
                   <span className="text-2xl font-bold text-yellow-400">{currentPlayer.money}</span>
                 </div>
@@ -291,7 +291,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🏭</span>
-                    <span className="text-gray-300">CO2排放</span>
+                    <span className="text-gray-300">CO2 Emissions</span>
                   </div>
                   <span className="text-2xl font-bold text-red-400">{currentPlayer.co2}</span>
                 </div>
@@ -301,13 +301,13 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🌱</span>
-                    <span className="text-gray-300">生态绿化</span>
+                    <span className="text-gray-300">Eco Greening</span>
                   </div>
                   <span className="text-2xl font-bold text-green-400">{currentPlayer.eco}</span>
                 </div>
               </div>
               
-              {/* 全球CO2总和显示 */}
+              {/* Global CO2 total display */}
               <div className={`bg-gradient-to-r rounded-xl p-4 border ${
                 players.reduce((total, p) => total + p.co2, 0) > GLOBAL_CO2_LIMIT * 0.8
                   ? 'from-red-600/30 to-red-500/30 border-red-500/50'
@@ -316,7 +316,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🌍</span>
-                    <span className="text-gray-300">全球CO2总和</span>
+                    <span className="text-gray-300">Global CO2 Total</span>
                   </div>
                   <div className="text-right">
                     <div className={`text-2xl font-bold ${
@@ -326,23 +326,23 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                     }`}>
                       {players.reduce((total, p) => total + p.co2, 0)}
                     </div>
-                    <div className="text-xs text-gray-400">限制: {GLOBAL_CO2_LIMIT}</div>
+                    <div className="text-xs text-gray-400">Limit: {GLOBAL_CO2_LIMIT}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 每回合效果 */}
+          {/* Per turn effects */}
           <div className="mb-6">
             <h2 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
-              ⚡ {currentPlayer.name} 每回合效果
+              ⚡ {currentPlayer.name} Per Turn Effects
             </h2>
             <div className="space-y-2">
               {getTotalIncome() > 0 && (
                 <div className="flex items-center justify-between bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/20">
                   <span className="text-gray-300 flex items-center gap-2">
-                    <span>📈</span> 收入
+                    <span>📈</span> Income
                   </span>
                   <span className="text-emerald-400 font-bold">+{getTotalIncome()}</span>
                 </div>
@@ -355,7 +355,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                     : 'bg-teal-500/10 border-teal-500/20'
                 }`}>
                   <span className="text-gray-300 flex items-center gap-2">
-                    <span>🏭</span> 排放
+                    <span>🏭</span> Emissions
                   </span>
                   <span className={`font-bold ${
                     getTotalCO2PerTurn() > 0 ? 'text-red-400' : 'text-teal-400'
@@ -372,7 +372,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                     : 'bg-rose-500/10 border-rose-500/20'
                 }`}>
                   <span className="text-gray-300 flex items-center gap-2">
-                    <span>🌱</span> 生态
+                    <span>🌱</span> Eco
                   </span>
                   <span className={`font-bold ${
                     getTotalEcoPerTurn() > 0 ? 'text-lime-400' : 'text-rose-400'
@@ -384,7 +384,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
             </div>
           </div>
 
-          {/* 事件历史 */}
+          {/* Event history */}
           <div>
             <EventHistory 
               eventHistory={eventHistory}
@@ -395,7 +395,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
         </div>
       </div>
       
-      {/* 政策选择弹窗 */}
+      {/* Policy selection modal */}
       {showPolicyModal && currentPolicy && (
         <PolicyModal
           policy={currentPolicy}
@@ -411,7 +411,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
         />
       )}
       
-      {/* 政策投票结果弹窗 */}
+      {/* Policy voting result modal */}
       {(() => {
         console.log(`🔍 MultiPlayerApp 渲染检查: showPolicyResult=${showPolicyResult}, policyResult=`, policyResult);
         return showPolicyResult && policyResult && (
@@ -425,7 +425,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
         );
       })()}
       
-      {/* 交通方式选择弹窗 */}
+      {/* Transport mode selection modal */}
       {showTransportModal && (
         <TransportModal
           isOpen={showTransportModal}
@@ -435,7 +435,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
         />
       )}
       
-      {/* 游戏结束弹窗 */}
+      {/* Game end modal */}
        <GameEndModal
          isOpen={gameResult.isEnded}
          winner={gameResult.winner}
@@ -446,7 +446,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
          onBackToMenu={onBackToMenu}
        />
        
-       {/* 调试面板 */}
+       {/* Debug panel */}
        <DebugPanel
          players={players}
          turnCount={turnCount}

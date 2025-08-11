@@ -13,7 +13,7 @@ const EventHistory = ({ eventHistory, isOpen, onToggle }: EventHistoryProps) => 
       >
         <div className="flex items-center gap-2">
           <span className="text-xl">📜</span>
-          <span className="font-medium">事件历史</span>
+          <span className="font-medium">Event History</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="bg-purple-500/30 text-purple-200 px-2 py-1 rounded-lg text-sm font-bold">
@@ -32,7 +32,7 @@ const EventHistory = ({ eventHistory, isOpen, onToggle }: EventHistoryProps) => 
           <div className="p-4 border-b border-white/10">
             <h3 className="font-bold text-cyan-400 flex items-center gap-2">
               <span className="text-lg">📋</span>
-              事件历史记录
+              Event History Records
             </h3>
           </div>
           

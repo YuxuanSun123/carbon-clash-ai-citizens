@@ -48,7 +48,7 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
             🎲
           </span>
           <span className="text-base font-semibold">
-            掷骰子
+            Roll Dice
           </span>
         </div>
       </button>

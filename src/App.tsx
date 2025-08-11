@@ -18,7 +18,7 @@ function App() {
           <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-4">
             Carbon Clash
           </h1>
-          <p className="text-xl text-gray-300 mb-12">环保策略棋盘游戏</p>
+          <p className="text-xl text-gray-300 mb-12">Environmental Strategy Board Game</p>
           
           <div className="space-y-6">
             <button
@@ -28,15 +28,15 @@ function App() {
               <div className="flex items-center justify-center gap-3">
                 <span className="text-2xl">🤖</span>
                 <div className="text-left">
-                  <div className="text-lg">开始游戏</div>
-                  <div className="text-sm text-purple-200">与AI商业家和AI环保家对战</div>
+                  <div className="text-lg">Start Game</div>
+                  <div className="text-sm text-purple-200">Battle against AI Business & AI Environmentalist</div>
                 </div>
               </div>
             </button>
           </div>
           
           <div className="mt-12 text-sm text-gray-400">
-            <p>选择游戏模式开始你的环保之旅</p>
+            <p>Start your environmental journey</p>
           </div>
         </div>
       </div>
