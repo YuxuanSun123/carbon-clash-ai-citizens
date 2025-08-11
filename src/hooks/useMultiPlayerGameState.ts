@@ -134,7 +134,7 @@ export const useMultiPlayerGameState = () => {
   const currentPlayer = players[currentPlayerIndex];
 
   // Game constants
-  const MAX_TURNS = 30; // Maximum number of turns
+  const MAX_TURNS = 60; // Maximum number of turns
   const MAX_CO2 = Infinity; // No CO2 limit for individual players
   const GLOBAL_CO2_LIMIT = 1000; // Global CO2 total limit
   const BANKRUPTCY_THRESHOLD = -500; // Bankruptcy threshold
