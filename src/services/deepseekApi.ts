@@ -9,6 +9,16 @@ const DEEPSEEK_API_URL = import.meta.env.VITE_DEEPSEEK_API_URL || 'https://api.d
 const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY || '';
 const DEEPSEEK_MODEL = import.meta.env.VITE_DEEPSEEK_MODEL || 'deepseek-chat';
 
+// Get API URL based on environment
+function getApiUrl(): string {
+  // In development, use proxy to avoid CORS
+  if (import.meta.env.DEV) {
+    return '/api/deepseek/v1/chat/completions';
+  }
+  // In production, use direct API URL
+  return DEEPSEEK_API_URL;
+}
+
 // API Request Interface
 interface DeepSeekRequest {
   model: string;
@@ -124,17 +134,20 @@ ${otherPlayers}
 async function callDeepSeekAPI(request: DeepSeekRequest): Promise<string> {
   console.log('🤖 Calling DeepSeek API');
   
+  const apiUrl = getApiUrl();
+  const isDevelopmentProxy = import.meta.env.DEV && apiUrl.startsWith('/api/deepseek');
+  
   // Check if it's ollama local deployment (by URL)
   const isOllama = DEEPSEEK_API_URL.includes('localhost') || DEEPSEEK_API_URL.includes('127.0.0.1');
   
-  // If not ollama and no API key, throw error
-  if (!isOllama && !DEEPSEEK_API_KEY) {
+  // If not ollama and no API key, throw error (except in dev proxy mode)
+  if (!isOllama && !DEEPSEEK_API_KEY && !isDevelopmentProxy) {
     console.warn('⚠️ DeepSeek API Key not configured, using default AI logic');
     throw new Error('API key not configured');
   }
   
   console.log('🚀 Starting AI API call...');
-  console.log('📍 API URL:', DEEPSEEK_API_URL);
+  console.log('📍 API URL:', apiUrl);
   console.log('🎯 Using model:', request.model);
   console.log('📤 Request data:', JSON.stringify(request, null, 2));
   
@@ -143,13 +156,13 @@ async function callDeepSeekAPI(request: DeepSeekRequest): Promise<string> {
     'Content-Type': 'application/json'
   };
   
-  // Only add Authorization header in non-ollama environment
-  if (!isOllama) {
+  // Only add Authorization header in non-ollama and non-development-proxy environment
+  if (!isOllama && !isDevelopmentProxy) {
     headers['Authorization'] = `Bearer ${DEEPSEEK_API_KEY}`;
   }
   
   try {
-    const response = await fetch(DEEPSEEK_API_URL, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(request)

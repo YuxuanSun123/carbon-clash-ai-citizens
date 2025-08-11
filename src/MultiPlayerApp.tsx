@@ -6,6 +6,7 @@ import TransportModal from "./components/TransportModal";
 import EventHistory from "./components/EventHistory";
 import GameEndModal from "./components/GameEndModal";
 import DebugPanel from "./components/DebugPanel";
+// import ApiTestButton from "./components/ApiTestButton";
 import { useMultiPlayerGameState } from "./hooks/useMultiPlayerGameState";
 import { useState, useCallback } from "react";
 
@@ -103,6 +104,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
           </div>
           
           <div className="flex items-center gap-4">
+            {/* <ApiTestButton /> */}
             {onBackToMenu && (
               <button
                 onClick={onBackToMenu}
@@ -461,6 +463,9 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
          onSetTurn={debugSetTurn}
          onTriggerGameEnd={debugTriggerGameEnd}
        />
+       
+       {/* API Test Button - 注释掉，如需调试CORS问题可重新启用 */}
+       {/* <ApiTestButton /> */}
      </div>
    );
 }
