@@ -255,6 +255,58 @@ export async function getAIUpgradeChoiceFromDeepSeek(
     const shouldUpgrade = parseUpgradeResponse(response);
     console.log(`✅ DeepSeek API upgrade decision success! Player ${player.name} decision: ${shouldUpgrade ? 'Upgrade' : 'No upgrade'}`);
     
+    // Add detailed explanation for the AI's upgrade decision
+    const aiType = player.type === 'ai-income' ? 'Business AI' : 'Eco AI';
+    const firstBuilding = upgradableBuildings[0];
+    
+    console.log(`🏗️ ${aiType} Upgrade Decision Analysis:`);
+    console.log(`   💰 Available Funds: ${player.money} coins`);
+    console.log(`   💸 Upgrade Cost: ${firstBuilding.upgradeCost} coins`);
+    console.log(`   📍 Building Location: Position ${firstBuilding.position}`);
+    console.log(`   🏢 Building Type: ${firstBuilding.buildingType}`);
+    
+    console.log(`💭 ${aiType} Upgrade Reasoning:`);
+    
+    if (shouldUpgrade) {
+      console.log(`   ✅ Decision: UPGRADE`);
+      
+      if (player.type === 'ai-income') {
+        if (firstBuilding.buildingType === 'factory') {
+          console.log(`   🎯 Reasoning: Upgrading factory significantly boosts income generation. Enhanced factory will provide even higher returns on investment.`);
+        } else if (firstBuilding.buildingType === 'residential') {
+          console.log(`   🎯 Reasoning: Upgrading residential building improves income efficiency. Better housing generates more revenue per turn.`);
+        } else if (firstBuilding.buildingType === 'green') {
+          console.log(`   🎯 Reasoning: While green buildings aren't my priority, upgrading improves both income and environmental balance, creating long-term value.`);
+        }
+        console.log(`   💡 Strategic Value: Upgraded buildings provide better ROI and strengthen my economic position for future expansion.`);
+      } else {
+        if (firstBuilding.buildingType === 'green') {
+          console.log(`   🎯 Reasoning: Upgrading green building maximizes environmental benefits. Enhanced eco-friendly infrastructure is core to my mission.`);
+        } else if (firstBuilding.buildingType === 'residential') {
+          console.log(`   🎯 Reasoning: Upgrading residential building improves living standards while maintaining moderate environmental impact.`);
+        } else if (firstBuilding.buildingType === 'factory') {
+          console.log(`   🎯 Reasoning: Though not ideal environmentally, upgrading existing factory is more efficient than building new polluting structures.`);
+        }
+        console.log(`   🌱 Environmental Value: Upgraded buildings often have better efficiency and reduced environmental impact per unit of output.`);
+      }
+      
+      console.log(`   📈 Expected Benefits: Enhanced building performance, improved resource efficiency, and better long-term sustainability.`);
+    } else {
+      console.log(`   ❌ Decision: NO UPGRADE`);
+      
+      if (player.money < firstBuilding.upgradeCost) {
+        console.log(`   💸 Reasoning: Insufficient funds (need ${firstBuilding.upgradeCost}, have ${player.money}). Preserving capital for other strategic opportunities.`);
+      } else {
+        console.log(`   💰 Reasoning: While funds are available, current building performance is adequate. Saving resources for new construction or better opportunities.`);
+        
+        if (player.type === 'ai-income') {
+          console.log(`   📊 Business Strategy: Capital preservation allows for building new income-generating structures instead of incremental improvements.`);
+        } else {
+          console.log(`   🌍 Eco Strategy: Resources better allocated to building new green infrastructure rather than upgrading existing structures.`);
+        }
+      }
+    }
+    
     return shouldUpgrade;
     
   } catch (error) {
@@ -342,7 +394,47 @@ export async function getAIChoiceFromDeepSeek(
       console.log(`✅ Sufficient money, can build`);
     }
     
+    // Add detailed explanation for the AI's decision
     console.log(`🎯 DeepSeek AI final decision: ${choice || 'none'}`);
+    
+    // Generate explanation based on AI type and choice
+    if (choice) {
+      const aiType = player.type === 'ai-income' ? 'Business AI' : 'Eco AI';
+      const buildingNames = { factory: 'Factory', residential: 'Residential', green: 'Green Building' };
+      const costs = { factory: 300, residential: 200, green: 150 };
+      
+      console.log(`💭 ${aiType} Decision Explanation:`);
+      console.log(`   📍 Current Position: ${player.position} (${currentPosition.type} cell)`);
+      console.log(`   💰 Available Funds: ${player.money} coins`);
+      console.log(`   🏗️ Chosen Building: ${buildingNames[choice]} (Cost: ${costs[choice]} coins)`);
+      
+      if (player.type === 'ai-income') {
+        if (choice === 'factory') {
+          console.log(`   🎯 Reasoning: As a business-focused AI, I prioritize high-income buildings. Factory provides the highest return on investment with +80 income per turn.`);
+        } else if (choice === 'residential') {
+          console.log(`   🎯 Reasoning: Factory is too expensive right now. Residential building offers good income (+50/turn) at a reasonable cost.`);
+        } else if (choice === 'green') {
+          console.log(`   🎯 Reasoning: Limited budget forces me to choose Green Building. While income is lower (+30/turn), it's still profitable and helps with environmental balance.`);
+        }
+      } else {
+        if (choice === 'green') {
+          console.log(`   🎯 Reasoning: As an eco-focused AI, I prioritize environmental protection. Green Building reduces CO2 (-20) and increases eco score (+30) while providing sustainable income.`);
+        } else if (choice === 'residential') {
+          console.log(`   🎯 Reasoning: Green Building not affordable right now. Residential offers moderate environmental impact while maintaining economic development.`);
+        } else if (choice === 'factory') {
+          console.log(`   🎯 Reasoning: Despite environmental concerns, my funds are substantial enough to afford the economic boost. Will balance this with green investments later.`);
+        }
+      }
+      
+      console.log(`   📊 Expected Impact: Income +${choice === 'factory' ? '80' : choice === 'residential' ? '50' : '30'}/turn, CO2 ${choice === 'factory' ? '+80' : choice === 'residential' ? '+30' : '-20'}, Eco ${choice === 'factory' ? '-10' : choice === 'residential' ? '0' : '+30'}`);
+    } else {
+      const aiType = player.type === 'ai-income' ? 'Business AI' : 'Eco AI';
+      console.log(`💭 ${aiType} Decision Explanation:`);
+      console.log(`   🚫 Reasoning: After analyzing current situation, building is not optimal right now.`);
+      console.log(`   💰 Available Funds: ${player.money} coins`);
+      console.log(`   📍 Position Analysis: Either insufficient funds, position already occupied, or strategic decision to save resources for better opportunities.`);
+    }
+    
     return choice;
     
   } catch (error) {
@@ -564,6 +656,53 @@ export async function getAIPolicyChoiceFromDeepSeek(
     if (isNaN(choiceIndex) || choiceIndex < 0 || choiceIndex >= policyChoices.length) {
       throw new Error('Invalid choice index');
     }
+    
+    // Add detailed explanation for the AI's policy decision
+    const aiType = player.type === 'ai-income' ? 'Business AI' : 'Eco AI';
+    const selectedPolicy = policyChoices[choiceIndex];
+    
+    console.log(`🏛️ ${aiType} Policy Decision:`);
+    console.log(`   📋 Selected Option ${choiceIndex}: "${selectedPolicy.text}"`);
+    console.log(`   📊 Policy Effects: ${JSON.stringify(selectedPolicy.effects)}`);
+    
+    // Generate reasoning based on AI type and policy effects
+    console.log(`💭 ${aiType} Policy Reasoning:`);
+    
+    if (player.type === 'ai-income') {
+      const moneyEffect = selectedPolicy.effects.money || 0;
+      const co2Effect = selectedPolicy.effects.co2 || 0;
+      const ecoEffect = selectedPolicy.effects.eco || 0;
+      
+      if (moneyEffect > 0) {
+        console.log(`   💰 Reasoning: This policy increases income by ${moneyEffect} coins, directly supporting my business-focused strategy.`);
+      } else if (moneyEffect < 0) {
+        console.log(`   💸 Reasoning: While this policy costs ${Math.abs(moneyEffect)} coins, it's the best available option that minimizes financial loss.`);
+      } else {
+        console.log(`   ⚖️ Reasoning: This policy has neutral financial impact, chosen as the most balanced option among available choices.`);
+      }
+      
+      if (co2Effect !== 0 || ecoEffect !== 0) {
+        console.log(`   🌍 Secondary Consideration: Environmental impact (CO2: ${co2Effect >= 0 ? '+' : ''}${co2Effect}, Eco: ${ecoEffect >= 0 ? '+' : ''}${ecoEffect}) is acceptable for business growth.`);
+      }
+    } else {
+      const ecoEffect = selectedPolicy.effects.eco || 0;
+      const co2Effect = selectedPolicy.effects.co2 || 0;
+      const moneyEffect = selectedPolicy.effects.money || 0;
+      
+      if (ecoEffect > 0 || co2Effect < 0) {
+        console.log(`   🌱 Reasoning: This policy improves environmental conditions (Eco: ${ecoEffect >= 0 ? '+' : ''}${ecoEffect}, CO2: ${co2Effect >= 0 ? '+' : ''}${co2Effect}), aligning with my eco-focused mission.`);
+      } else if (ecoEffect < 0 || co2Effect > 0) {
+        console.log(`   ⚠️ Reasoning: Despite negative environmental impact (Eco: ${ecoEffect >= 0 ? '+' : ''}${ecoEffect}, CO2: ${co2Effect >= 0 ? '+' : ''}${co2Effect}), this is the least harmful option available.`);
+      } else {
+        console.log(`   🔄 Reasoning: This policy has neutral environmental impact, chosen as a balanced compromise among available options.`);
+      }
+      
+      if (moneyEffect !== 0) {
+        console.log(`   💼 Secondary Consideration: Economic impact (${moneyEffect >= 0 ? '+' : ''}${moneyEffect} coins) is acceptable to achieve environmental goals.`);
+      }
+    }
+    
+    console.log(`   🎯 Final Decision: Option ${choiceIndex} best represents my strategic priorities and values.`);
     
     return choiceIndex;
     
