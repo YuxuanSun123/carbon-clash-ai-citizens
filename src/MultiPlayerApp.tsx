@@ -69,10 +69,10 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
 
   const [showHistory, setShowHistory] = useState(false);
 
-  // 暴露调试函数到全局对象（仅开发环境）
+  // Expose debug functions to global object (development only)
   if (import.meta.env.DEV) {
     (window as any).debugTestAIChoice = debugTestAIChoice;
-    console.log('🔧 调试函数已暴露: window.debugTestAIChoice()');
+    console.log('🔧 Debug function exposed: window.debugTestAIChoice()');
   }
 
   // 获取玩家颜色
@@ -413,7 +413,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
       
       {/* Policy voting result modal */}
       {(() => {
-        console.log(`🔍 MultiPlayerApp 渲染检查: showPolicyResult=${showPolicyResult}, policyResult=`, policyResult);
+        console.log(`🔍 MultiPlayerApp render check: showPolicyResult=${showPolicyResult}, policyResult=`, policyResult);
         return showPolicyResult && policyResult && (
           <PolicyResultModal
             policy={policyResult.policy}

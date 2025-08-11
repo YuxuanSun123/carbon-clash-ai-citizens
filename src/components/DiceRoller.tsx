@@ -19,7 +19,7 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
     } else {
       const baseRoll = Math.floor(Math.random() * 6) + 1;
       finalRoll = Math.max(1, Math.min(6, baseRoll + diceModifier)); // 应用骰子修改器，限制在1-6范围内
-      console.log(`人类玩家掷出 ${baseRoll} 点 (修改器: ${diceModifier > 0 ? '+' : ''}${diceModifier}) = ${finalRoll} 点`);
+      console.log(`Human player rolled ${baseRoll} points (modifier: ${diceModifier > 0 ? '+' : ''}${diceModifier}) = ${finalRoll} points`);
     }
     
     onRoll(finalRoll);

@@ -572,10 +572,10 @@ export const useMultiPlayerGameState = () => {
 
   // AI升级选择逻辑（使用DeepSeek API，带30秒超时）
   const getAIUpgradeChoice = async (player: Player): Promise<boolean> => {
-    console.log(`🤖 开始AI升级决策 - 玩家: ${player.name}, 金钱: ${player.money}`);
-    console.log(`🔍 当前游戏阶段: ${gamePhase}, 回合数: ${turnCount}`);
+    console.log(`🤖 Starting AI upgrade decision - Player: ${player.name}, Money: ${player.money}`);
+    console.log(`🔍 Current game phase: ${gamePhase}, turn count: ${turnCount}`);
     
-    // 检查玩家的所有建筑，找出可升级的建筑
+    // Check all player buildings and find upgradeable ones
     const upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}> = [];
     
     Object.entries(player.built).forEach(([posKey, buildingInfo]) => {
@@ -595,7 +595,7 @@ export const useMultiPlayerGameState = () => {
     
     console.log(`🏗️ 找到 ${upgradableBuildings.length} 个可升级建筑:`, upgradableBuildings);
     
-    // 如果没有可升级的建筑，直接返回false
+    // If no upgradeable buildings, return false directly
     if (upgradableBuildings.length === 0) {
       console.log(`❌ AI player ${player.name} has no upgradeable buildings`);
       return false;
@@ -610,8 +610,8 @@ export const useMultiPlayerGameState = () => {
     
     // 创建API调用Promise
     const apiPromise = async (): Promise<boolean> => {
-      console.log(`🌐 尝试使用DeepSeek API进行升级决策...`);
-      console.log(`🔑 API配置检查:`, {
+      console.log(`🌐 Trying to use DeepSeek API for upgrade decision...`);
+      console.log(`🔑 API configuration check:`, {
         hasApiKey: !!import.meta.env.VITE_DEEPSEEK_API_KEY,
         apiUrl: import.meta.env.VITE_DEEPSEEK_API_URL,
         model: import.meta.env.VITE_DEEPSEEK_MODEL
@@ -674,9 +674,9 @@ export const useMultiPlayerGameState = () => {
     const currentPosition = actualPosition !== undefined ? actualPosition : player.position;
     const playerWithCorrectPosition = { ...player, position: currentPosition };
     
-    console.log(`🤖 开始AI决策 - 玩家: ${player.name}, 位置: ${currentPosition}, 金钱: ${player.money}`);
-    console.log(`🔍 当前游戏阶段: ${gamePhase}, 回合数: ${turnCount}`);
-    console.log(`📍 玩家完整状态:`, playerWithCorrectPosition);
+    console.log(`🤖 Starting AI decision - Player: ${player.name}, Position: ${currentPosition}, Money: ${player.money}`);
+    console.log(`🔍 Current game phase: ${gamePhase}, turn count: ${turnCount}`);
+    console.log(`📍 Complete player state:`, playerWithCorrectPosition);
     
     // 创建30秒超时的Promise
     const timeoutPromise = new Promise<BuildingType | null>((_, reject) => {
@@ -687,8 +687,8 @@ export const useMultiPlayerGameState = () => {
     
     // 创建API调用Promise
     const apiPromise = async (): Promise<BuildingType | null> => {
-      console.log(`🌐 尝试使用DeepSeek API进行决策...`);
-      console.log(`🔑 API配置检查:`, {
+      console.log(`🌐 Trying to use DeepSeek API for decision...`);
+      console.log(`🔑 API configuration check:`, {
         hasApiKey: !!import.meta.env.VITE_DEEPSEEK_API_KEY,
         apiUrl: import.meta.env.VITE_DEEPSEEK_API_URL,
         model: import.meta.env.VITE_DEEPSEEK_MODEL
@@ -704,7 +704,7 @@ export const useMultiPlayerGameState = () => {
     
     try {
       // 使用Promise.race实现超时机制
-      console.log(`⏰ 开始API调用，最大等待时间30秒...`);
+      console.log(`⏰ Starting API call, maximum wait time 30 seconds...`);
       const choice = await Promise.race([apiPromise(), timeoutPromise]);
       return choice;
     } catch (error) {
@@ -1062,23 +1062,23 @@ export const useMultiPlayerGameState = () => {
         
         // AI自动建造（仅在可建造格子上）
         if (player.type !== 'human') {
-          console.log(`AI玩家 ${player.name} 在可建造格子上，准备进入建造阶段`);
+          console.log(`AI player ${player.name} is on a buildable cell, preparing to enter building phase`);
           // 传入新位置参数，确保AI建造决策使用移动后的实际位置
           setTimeout(() => {
             handleAIBuildingById(player.id, newPosition);
           }, 500);
         } else {
-          console.log(`人类玩家 ${player.name} 在可建造格子上，进入建造阶段`);
+          console.log(`Human player ${player.name} is on a buildable cell, entering building phase`);
         }
       } else {
         // 事件格子：只处理事件效果，不进入建造阶段
-        console.log(`玩家 ${player.name} 在事件格子上，只处理事件效果，不进行建造`);
+        console.log(`Player ${player.name} is on an event cell, only processing event effects, no building`);
         
         // 检查是否是政策格子，政策格子的回合切换由handlePolicyChoice处理
         const isPolicyCell = currentCell.type === 'policy';
         
         if (player.type !== 'human') {
-          // AI玩家在事件格子上：只有非政策格子才直接切换回合
+          // AI player on event cell: only switch turns directly for non-policy cells
           if (!isPolicyCell) {
             setTimeout(() => {
               console.log(`AI玩家 ${player.name} 事件处理完成，直接切换到下一回合`);
@@ -1088,8 +1088,8 @@ export const useMultiPlayerGameState = () => {
             console.log(`AI玩家 ${player.name} 在政策格子上，等待政策选择完成后切换回合`);
           }
         } else {
-          // 人类玩家在事件格子上：等待用户关闭事件弹窗后手动切换回合
-          console.log(`人类玩家 ${player.name} 在事件格子上，等待用户处理事件`);
+          // Human player on event cell: wait for user to close event popup before manually switching turns
+          console.log(`Human player ${player.name} is on an event cell, waiting for user to handle event`);
           setGamePhase('waiting'); // 设置为等待状态
         }
       }
@@ -1114,7 +1114,7 @@ export const useMultiPlayerGameState = () => {
       
       // 如果下一个玩家是AI，设置AI思考状态
       if (nextPlayer.type !== 'human') {
-        console.log(`AI玩家 ${nextPlayer.name} 开始回合`);
+        console.log(`AI player ${nextPlayer.name} starts turn`);
         setAiThinking(true);
       } else {
         console.log(`Human player ${nextPlayer.name} starts turn`);
@@ -1159,7 +1159,7 @@ export const useMultiPlayerGameState = () => {
       
       // 使用传入的实际位置，如果没有传入则使用玩家当前位置
       const buildingPosition = actualPosition !== undefined ? actualPosition : player.position;
-      console.log(`AI玩家 ${player.name} 开始建造决策，玩家状态位置: ${player.position}, 实际建造位置: ${buildingPosition}`);
+      console.log(`AI player ${player.name} starts building decision, player state position: ${player.position}, actual building position: ${buildingPosition}`);
       
       // 在调用AI决策之前，先检查是否可以建造，避免不必要的API调用
       if (!canBuildHereForPlayer(playerId, buildingPosition)) {
@@ -1290,14 +1290,14 @@ export const useMultiPlayerGameState = () => {
     setVotedPlayers(new Set());
     setShowPolicyModal(true);
     
-    // 为每个选项初始化投票计数
+    // Initialize vote count for each option
     const initialVotes: Record<number, number> = {};
     policy.choices.forEach((_, index) => {
       initialVotes[index] = 0;
     });
     setPlayerVotes(initialVotes);
     
-    console.log(`🗳️ 开始政策投票: ${policy.name}`);
+    console.log(`🗳️ Starting policy vote: ${policy.name}`);
     
     // 开始按顺序投票，从第一个玩家开始
     setTimeout(() => {
@@ -1309,9 +1309,9 @@ export const useMultiPlayerGameState = () => {
   const triggerNextPlayerVote = () => {
     if (!currentPolicy) return;
     
-    console.log(`🔍 triggerNextPlayerVote 被调用`);
-    console.log(`📋 已投票玩家:`, Array.from(votedPlayers));
-    console.log(`👥 所有玩家:`, players.map(p => `${p.id}:${p.name}(${p.type})`));
+    console.log(`🔍 triggerNextPlayerVote called`);
+    console.log(`📋 Voted players:`, Array.from(votedPlayers));
+    console.log(`👥 All players:`, players.map(p => `${p.id}:${p.name}(${p.type})`));
     
     // 按顺序查找下一个未投票的玩家: 人类玩家(0) -> 商业AI(1) -> 环保AI(2)
     const playerOrder = [0, 1, 2]; // 投票顺序
@@ -1322,10 +1322,10 @@ export const useMultiPlayerGameState = () => {
       const playerExists = !!players[playerId];
       const player = players[playerId];
       
-      console.log(`🔍 检查玩家 ${playerId}: 已投票=${hasVoted}, 存在=${playerExists}, 名称=${player?.name}`);
+      console.log(`🔍 Checking player ${playerId}: voted=${hasVoted}, exists=${playerExists}, name=${player?.name}`);
       
       if (!hasVoted && playerExists) {
-        console.log(`✅ 找到下一个投票玩家: ${player.name} (ID: ${playerId}, 类型: ${player.type})`);
+        console.log(`✅ Found next voting player: ${player.name} (ID: ${playerId}, type: ${player.type})`);
         
         // 设置当前投票玩家
         setCurrentVotingPlayerId(playerId);
@@ -1336,7 +1336,7 @@ export const useMultiPlayerGameState = () => {
           // 人类玩家通过UI投票，不需要自动触发
           break;
         } else {
-          console.log(`🗳️ 轮到AI ${player.name} 投票，1秒后自动投票`);
+          console.log(`🗳️ AI ${player.name}'s turn to vote, auto-voting in 1 second`);
           // AI玩家自动投票，延迟1秒让用户看到顺序
           setTimeout(() => {
             handleAIVote(playerId, currentPolicy!);
@@ -1347,15 +1347,15 @@ export const useMultiPlayerGameState = () => {
     }
     
     if (!foundNextPlayer) {
-      console.log(`❌ 没有找到下一个投票玩家！`);
+      console.log(`❌ No next voting player found!`);
     }
     
-    console.log(`📊 当前投票状态: 已投票 ${votedPlayers.size}/${players.length} 人`);
+    console.log(`📊 Current voting status: ${votedPlayers.size}/${players.length} players voted`);
   };
   
   // 处理玩家投票（主要用于人类玩家）
   const handlePolicyVote = (playerId: number, choiceIndex: number) => {
-    console.log(`👤 handlePolicyVote 开始: 玩家 ${playerId} (${players[playerId]?.name}) 选择 ${choiceIndex}`);
+    console.log(`👤 handlePolicyVote started: player ${playerId} (${players[playerId]?.name}) chose ${choiceIndex}`);
     
     if (!votingInProgress || votedPlayers.has(playerId)) {
       console.log(`❌ 人类投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
@@ -1367,20 +1367,20 @@ export const useMultiPlayerGameState = () => {
       [choiceIndex]: (prev[choiceIndex] || 0) + 1
     }));
     
-    // 创建新的已投票玩家集合
+    // Create new set of voted players
     const newVotedPlayers = new Set([...votedPlayers, playerId]);
     setVotedPlayers(newVotedPlayers);
     
     // 清除当前投票玩家ID
     setCurrentVotingPlayerId(undefined);
     
-    console.log(`🗳️ 玩家 ${players[playerId].name} 投票给选项 ${choiceIndex}`);
-    console.log(`📈 投票后状态: 已投票 ${newVotedPlayers.size}/${players.length} 人`);
+    console.log(`🗳️ Player ${players[playerId].name} voted for option ${choiceIndex}`);
+    console.log(`📈 Post-vote status: ${newVotedPlayers.size}/${players.length} players voted`);
   };
   
   // AI投票逻辑
   const handleAIVote = async (playerId: number, policy: PolicyChoice) => {
-    console.log(`🤖 handleAIVote 开始: 玩家 ${playerId} (${players[playerId]?.name})`);
+    console.log(`🤖 handleAIVote started: player ${playerId} (${players[playerId]?.name})`);
     
     if (!votingInProgress || votedPlayers.has(playerId)) {
       console.log(`❌ AI投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
@@ -1393,9 +1393,9 @@ export const useMultiPlayerGameState = () => {
     try {
       // 使用DeepSeek API进行政策选择
       choiceIndex = await getAIPolicyChoiceFromDeepSeek(player, policy.choices);
-      console.log(`🤖 AI ${player.name} 通过DeepSeek选择: ${choiceIndex}`);
+      console.log(`🤖 AI ${player.name} chose via DeepSeek: ${choiceIndex}`);
     } catch (error) {
-      console.error('AI投票失败，使用备用逻辑:', error);
+      console.error('AI voting failed, using fallback logic:', error);
       
       // 备用逻辑
       if (player.type === 'ai-income') {
@@ -1432,8 +1432,8 @@ export const useMultiPlayerGameState = () => {
     // 清除当前投票玩家ID
     setCurrentVotingPlayerId(undefined);
     
-    console.log(`🗳️ AI ${player.name} 投票给选项 ${choiceIndex}`);
-    console.log(`📈 AI投票完成`);
+    console.log(`🗳️ AI ${player.name} voted for option ${choiceIndex}`);
+    console.log(`📈 AI voting completed`);
   };
   
   // 完成政策投票并显示结果
@@ -1448,23 +1448,23 @@ export const useMultiPlayerGameState = () => {
       return;
     }
     
-    // 计算获胜选项
+    // Calculate winning option
     let winningChoiceIndex = 0;
     let maxVotes = 0;
     
     Object.entries(playerVotes).forEach(([choiceIndex, votes]) => {
-      console.log(`🔍 选项 ${choiceIndex}: ${votes} 票`);
+      console.log(`🔍 Option ${choiceIndex}: ${votes} votes`);
       if (votes > maxVotes) {
         maxVotes = votes;
         winningChoiceIndex = parseInt(choiceIndex);
       }
     });
     
-    console.log(`🏆 获胜选项: ${winningChoiceIndex} (${maxVotes}票)`);
+    console.log(`🏆 Winning option: ${winningChoiceIndex} (${maxVotes} votes)`);
     
     const winningChoice = currentPolicy.choices[winningChoiceIndex];
     
-    // 应用政策效果到所有玩家
+    // Apply policy effects to all players
     players.forEach(player => {
       applyEventEffects(player.id, winningChoice.effects);
     });
@@ -1481,7 +1481,7 @@ export const useMultiPlayerGameState = () => {
       winningChoiceIndex,
       votes: playerVotes
     };
-    console.log(`🔍 设置 policyResult:`, resultData);
+    console.log(`🔍 Setting policyResult:`, resultData);
     setPolicyResult(resultData);
     
     // 清理投票状态
@@ -1491,10 +1491,10 @@ export const useMultiPlayerGameState = () => {
     setCurrentVotingPlayerId(undefined);
     
     // 显示结果弹窗
-    console.log(`🔍 设置 showPolicyResult 为 true`);
+    console.log(`🔍 Setting showPolicyResult to true`);
     setShowPolicyResult(true);
     
-    console.log(`🏆 政策投票结果: 选项${winningChoiceIndex}获胜 (${maxVotes}票)`);
+    console.log(`🏆 Policy voting result: Option ${winningChoiceIndex} wins (${maxVotes} votes)`);
     
     // 移除自动关闭，让用户手动关闭结果弹窗
   };
@@ -1657,7 +1657,7 @@ export const useMultiPlayerGameState = () => {
         allBuildings[key] = building;
       });
     });
-    console.log(`📊 getAllBuildings 返回:`, allBuildings);
+    console.log(`📊 getAllBuildings returns:`, allBuildings);
     return allBuildings;
   };
 
