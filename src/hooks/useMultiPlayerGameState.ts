@@ -597,7 +597,7 @@ export const useMultiPlayerGameState = () => {
     
     // 如果没有可升级的建筑，直接返回false
     if (upgradableBuildings.length === 0) {
-      console.log(`❌ AI玩家 ${player.name} 没有可升级的建筑`);
+      console.log(`❌ AI player ${player.name} has no upgradeable buildings`);
       return false;
     }
     
@@ -620,8 +620,8 @@ export const useMultiPlayerGameState = () => {
       // 使用DeepSeek API进行升级选择
       const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
       const shouldUpgrade = await getAIUpgradeChoiceFromDeepSeek(player, upgradableBuildings, players, turnCount, apiGamePhase);
-      console.log(`✅ DeepSeek API升级决策成功! 玩家 ${player.name} 决定: ${shouldUpgrade ? '升级' : '不升级'}`);
-      console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
+      console.log(`✅ DeepSeek API upgrade decision successful! Player ${player.name} decided: ${shouldUpgrade ? 'upgrade' : 'no upgrade'}`);
+      console.log(`📊 Decision source: DeepSeek AI (intelligent decision)`);
       return shouldUpgrade;
     };
     
@@ -697,8 +697,8 @@ export const useMultiPlayerGameState = () => {
       // 使用DeepSeek API进行建筑选择（传入位置修正后的玩家信息）
       const apiGamePhase: 'rolling' | 'building' | 'waiting' = gamePhase === 'ended' ? 'building' : gamePhase;
       const choice = await getAIChoiceFromDeepSeek(playerWithCorrectPosition, players, apiGamePhase, turnCount);
-      console.log(`✅ DeepSeek API决策成功! 玩家 ${player.name} 选择: ${choice || 'none'}`);
-      console.log(`📊 决策来源: DeepSeek AI (智能决策)`);
+      console.log(`✅ DeepSeek API decision successful! Player ${player.name} chose: ${choice || 'none'}`);
+      console.log(`📊 Decision source: DeepSeek AI (intelligent decision)`);
       return choice;
     };
     
@@ -750,8 +750,8 @@ export const useMultiPlayerGameState = () => {
         else if (playerWithCorrectPosition.money >= 500) choice = 'factory';
       }
       
-      console.log(`🔧 备用逻辑决策完成! 玩家 ${playerWithCorrectPosition.name} 选择: ${choice || 'none'}`);
-      console.log(`📊 决策来源: 本地备用逻辑 (简单规则)`);
+      console.log(`🔧 Fallback logic decision completed! Player ${playerWithCorrectPosition.name} chose: ${choice || 'none'}`);
+      console.log(`📊 Decision source: Local fallback logic (simple rules)`);
       return choice;
     }
   };
@@ -855,7 +855,7 @@ export const useMultiPlayerGameState = () => {
       const currentPosition = pathCoordinates[buildingPosition];
       const posKey = `${currentPosition.row}-${currentPosition.col}`;
       
-      console.log(`🏗️ 玩家 ${player.name} 在位置 ${buildingPosition} (${posKey}) 建造 ${building.name}`);
+      console.log(`🏗️ Player ${player.name} builds ${building.name} at position ${buildingPosition} (${posKey})`);
 
       return prev.map(p => {
         if (p.id !== playerId) return p;
@@ -872,7 +872,7 @@ export const useMultiPlayerGameState = () => {
           eco: newEco
         };
         
-        console.log(`✅ 建造完成! 玩家 ${p.name} 的建筑:`, updatedPlayer.built);
+        console.log(`✅ Building completed! Player ${p.name}'s buildings:`, updatedPlayer.built);
         return updatedPlayer;
       });
     });
@@ -1102,7 +1102,7 @@ export const useMultiPlayerGameState = () => {
       const nextPlayerIndex = (prevIndex + 1) % players.length;
       const nextPlayer = players[nextPlayerIndex];
       
-      console.log(`回合切换: 从玩家${prevIndex}(${players[prevIndex]?.name}) 到玩家${nextPlayerIndex}(${nextPlayer?.name})`);
+      console.log(`Turn switch: from player ${prevIndex}(${players[prevIndex]?.name}) to player ${nextPlayerIndex}(${nextPlayer?.name})`);
       
       setGamePhase('rolling');
       setTurnCount(prev => {
@@ -1117,7 +1117,7 @@ export const useMultiPlayerGameState = () => {
         console.log(`AI玩家 ${nextPlayer.name} 开始回合`);
         setAiThinking(true);
       } else {
-        console.log(`人类玩家 ${nextPlayer.name} 开始回合`);
+        console.log(`Human player ${nextPlayer.name} starts turn`);
       }
       
       return nextPlayerIndex;
@@ -1163,9 +1163,9 @@ export const useMultiPlayerGameState = () => {
       
       // 在调用AI决策之前，先检查是否可以建造，避免不必要的API调用
       if (!canBuildHereForPlayer(playerId, buildingPosition)) {
-        console.log(`AI玩家 ${player.name} 无法在位置 ${buildingPosition} 建造，跳过AI决策`);
+        console.log(`AI player ${player.name} cannot build at position ${buildingPosition}, skipping AI decision`);
         setTimeout(() => {
-          console.log(`AI玩家 ${player.name} 建造阶段结束，切换到下一回合`);
+          console.log(`AI player ${player.name} building phase ended, switching to next turn`);
           nextTurn();
           clearBuildingLock(); // 清除建造锁
         }, 1000);
@@ -1176,15 +1176,15 @@ export const useMultiPlayerGameState = () => {
       const buildingChoice = await getAIBuildingChoice(player, buildingPosition);
       
       if (buildingChoice) {
-        console.log(`AI玩家 ${player.name} 选择建造 ${buildingChoice}`);
+        console.log(`AI player ${player.name} chose to build ${buildingChoice}`);
         buildAtCurrentForPlayer(playerId, buildingChoice, buildingPosition);
       } else {
-        console.log(`AI玩家 ${player.name} 选择不建造`);
+        console.log(`AI player ${player.name} chose not to build`);
       }
       
       // 建造完成后，检查是否有可升级的建筑
       setTimeout(async () => {
-        console.log(`AI玩家 ${player.name} 建造阶段完成，检查升级机会...`);
+        console.log(`AI player ${player.name} building phase completed, checking upgrade opportunities...`);
         
         try {
           // 获取最新的玩家状态
@@ -1233,16 +1233,16 @@ export const useMultiPlayerGameState = () => {
                 upgradeAtCurrentForPlayer(playerId, buildingToUpgrade.position);
               }
             } else {
-              console.log(`AI玩家 ${updatedPlayer.name} 决定不升级建筑`);
+              console.log(`AI player ${updatedPlayer.name} decided not to upgrade buildings`);
             }
           }
         } catch (error) {
-          console.error(`AI升级决策失败:`, error);
+          console.error(`AI upgrade decision failed:`, error);
         }
         
         // 延迟后切换到下一回合
         setTimeout(() => {
-          console.log(`AI玩家 ${player.name} 回合结束，切换到下一回合`);
+          console.log(`AI player ${player.name} turn ended, switching to next turn`);
           nextTurn();
           clearBuildingLock(); // 清除建造锁
         }, 1500);

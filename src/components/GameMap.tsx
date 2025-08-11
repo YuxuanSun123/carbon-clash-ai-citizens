@@ -303,7 +303,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
     
     // 调试日志：显示建筑信息
     if (hasBuilding) {
-      console.log(`🏗️ 格子 ${index} (${posKey}) 有建筑: ${hasBuilding}, 所有者: ${finalBuildingOwner?.name || 'unknown'}`);
+      console.log(`🏗️ Cell ${index} (${posKey}) has building: ${hasBuilding}, owner: ${finalBuildingOwner?.name || 'unknown'}`);
     }
     
     // 检查是否可以建造
