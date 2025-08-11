@@ -1105,12 +1105,17 @@ export const useMultiPlayerGameState = () => {
       console.log(`Turn switch: from player ${prevIndex}(${players[prevIndex]?.name}) to player ${nextPlayerIndex}(${nextPlayer?.name})`);
       
       setGamePhase('rolling');
-      setTurnCount(prev => {
-        const newTurnCount = prev + 1;
-        // 延迟检查游戏结束条件，确保状态更新完成
-        setTimeout(() => checkGameEnd(), 100);
-        return newTurnCount;
-      });
+      
+      // 只有当回到第一个玩家时才增加回合数（一轮结束）
+      if (nextPlayerIndex === 0) {
+        setTurnCount(prev => {
+          const newTurnCount = prev + 1;
+          console.log(`Round completed! Turn count increased to: ${newTurnCount}`);
+          // 延迟检查游戏结束条件，确保状态更新完成
+          setTimeout(() => checkGameEnd(), 100);
+          return newTurnCount;
+        });
+      }
       
       // 如果下一个玩家是AI，设置AI思考状态
       if (nextPlayer.type !== 'human') {
