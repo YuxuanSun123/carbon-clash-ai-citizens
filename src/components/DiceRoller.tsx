@@ -1,4 +1,4 @@
-import { useState } from 'react';
+// import { useState } from 'react';
 
 interface DiceRollerProps {
   onRoll: (value: number) => void;
@@ -6,7 +6,7 @@ interface DiceRollerProps {
 }
 
 const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
-  const [customSteps, setCustomSteps] = useState<string>('');
+  // const [customSteps, setCustomSteps] = useState<string>('');
 
   const handleRoll = () => {
     let finalRoll;
@@ -25,13 +25,13 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
     onRoll(finalRoll);
   };
 
-  const handleCustomMove = () => {
-    const steps = parseInt(customSteps);
-    if (steps >= 1 && steps <= 40) {
-      onRoll(steps);
-      setCustomSteps('');
-    }
-  };
+  // const handleCustomMove = () => {
+  //   const steps = parseInt(customSteps);
+  //   if (steps >= 1 && steps <= 40) {
+  //     onRoll(steps);
+  //     setCustomSteps('');
+  //   }
+  // };
 
   return (
     <div className="flex items-center gap-4">
@@ -53,8 +53,8 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
         </div>
       </button>
 
-      {/* 自定义步数输入 */}
-      <div className="flex items-center gap-2">
+      {/* 自定义步数输入 - 已注释 */}
+      {/* <div className="flex items-center gap-2">
         <input
           type="number"
           min="1"
@@ -71,7 +71,7 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
         >
           移动
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

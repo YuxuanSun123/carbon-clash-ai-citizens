@@ -189,11 +189,11 @@ export const policyChoices: PolicyChoice[] = [
     icon: "🛣️",
     choices: [
       {
-        text: "赞成",
+        text: "Support",
         effects: { moneyPerTurn: 0.15, co2PerTurn: 10 }
       },
       {
-        text: "反对",
+        text: "Oppose",
         effects: { money: 0, co2: 0, eco: 0 }
       }
     ]

@@ -551,11 +551,11 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
                   Carbon Clash
                 </h2>
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-100 text-center leading-relaxed font-medium">
-                  Environmental Strategy Board Game
+                  Carbon Clash
                 </p>
                 <div className="mt-2 sm:mt-4 md:mt-6 lg:mt-8 flex items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-gray-200 bg-black/40 rounded-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-1 sm:py-2 md:py-3 border border-white/20">
-                  <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">🎯</span>
-                  <span className="font-semibold">Monopoly Mode</span>
+                  <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">🎮</span>
+                  <span className="font-semibold">Welcome to the Game!</span>
                 </div>
               </>
             )}

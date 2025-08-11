@@ -18,7 +18,7 @@ function App() {
           <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-4">
             Carbon Clash
           </h1>
-          <p className="text-xl text-gray-300 mb-12">Environmental Strategy Board Game</p>
+          <p className="text-xl text-gray-300 mb-12">Carbon Clash</p>
           
           <div className="space-y-6">
             <button

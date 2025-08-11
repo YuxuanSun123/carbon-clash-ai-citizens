@@ -98,7 +98,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
                 Carbon Clash - Multiplayer
               </h1>
-              <p className="text-sm text-gray-300">Environmental Strategy Board Game</p>
+              <p className="text-sm text-gray-300">Carbon Clash</p>
             </div>
           </div>
           
