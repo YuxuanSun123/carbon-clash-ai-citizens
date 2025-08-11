@@ -170,13 +170,13 @@ export const useMultiPlayerGameState = () => {
 
   // Calculate player score
   const calculatePlayerScore = (player: Player): number => {
-    // Comprehensive scoring system: money + eco benefits - CO2 penalty + building count bonus
-    const moneyScore = player.money * 0.5; // Money weight 0.5
-    const ecoScore = player.eco * 10; // Eco benefit weight 10
-    const co2Penalty = player.co2 * -2; // CO2 penalty weight -2
+    // Scoring system as specified: 1 point per 100 coins, 1 point per 10 eco points, -1 point per 10 CO2 points, building bonuses
+    const moneyScore = Math.floor(player.money / 100); // 1 point per 100 coins
+    const ecoScore = Math.floor(player.eco / 10); // 1 point per 10 ecological points
+    const co2Penalty = Math.floor(player.co2 / 10) * -1; // -1 point per 10 CO2 points
     const buildingBonus = Object.keys(player.built).length * 50; // 50 points bonus per building
     
-    return Math.round(moneyScore + ecoScore + co2Penalty + buildingBonus);
+    return moneyScore + ecoScore + co2Penalty + buildingBonus;
   };
 
   // Check game end conditions
