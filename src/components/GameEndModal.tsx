@@ -7,6 +7,8 @@ interface GameEndModalProps {
   reason: string;
   scores: { playerId: number; score: number; rank: number }[];
   players: Player[];
+  eventHistory: string[];
+  turnCount: number;
   onRestart: () => void;
   onBackToMenu?: () => void;
 }
@@ -17,6 +19,8 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
   reason,
   scores,
   players,
+  eventHistory,
+  turnCount,
   onRestart,
   onBackToMenu
 }) => {
@@ -62,6 +66,49 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
       case 3: return 'text-orange-400 bg-orange-400/20';
       default: return 'text-gray-400 bg-gray-400/20';
     }
+  };
+
+  // 导出游戏数据
+  const exportGameData = () => {
+    const gameData = {
+      gameInfo: {
+        endTime: new Date().toISOString(),
+        totalTurns: turnCount,
+        endReason: reason,
+        winner: winner ? {
+          id: winner.id,
+          name: winner.name,
+          type: winner.type
+        } : null
+      },
+      finalScores: scores,
+      playerDetails: players.map(player => ({
+        id: player.id,
+        name: player.name,
+        type: player.type,
+        finalStats: {
+          money: player.money,
+          co2: player.co2,
+          eco: player.eco,
+          buildings: Object.keys(player.built).length,
+          buildingDetails: player.built
+        }
+      })),
+      eventHistory: eventHistory,
+      exportTime: new Date().toLocaleString('zh-CN')
+    };
+
+    const dataStr = JSON.stringify(gameData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `carbon-clash-game-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -187,17 +234,23 @@ const GameEndModal: React.FC<GameEndModalProps> = ({
 
         {/* 按钮区域 */}
         <div className="p-6 border-t border-white/10">
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
+            <button
+              onClick={exportGameData}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+            >
+              📊 导出数据
+            </button>
             <button
               onClick={onRestart}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
             >
               🔄 再来一局
             </button>
             {onBackToMenu && (
               <button
                 onClick={onBackToMenu}
-                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
               >
                 🏠 返回主菜单
               </button>

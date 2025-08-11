@@ -237,6 +237,51 @@ export const useMultiPlayerGameState = () => {
     }
   }, [votedPlayers, votingInProgress, currentPolicy, players.length]);
 
+  // 自动导出游戏数据
+  const autoExportGameData = (winner: Player | null, reason: string, scores: any[], players: Player[]) => {
+    const gameData = {
+      gameInfo: {
+        endTime: new Date().toISOString(),
+        totalTurns: turnCount,
+        endReason: reason,
+        winner: winner ? {
+          id: winner.id,
+          name: winner.name,
+          type: winner.type
+        } : null
+      },
+      finalScores: scores,
+      playerDetails: players.map(player => ({
+        id: player.id,
+        name: player.name,
+        type: player.type,
+        finalStats: {
+          money: player.money,
+          co2: player.co2,
+          eco: player.eco,
+          buildings: Object.keys(player.built).length,
+          buildingDetails: player.built
+        }
+      })),
+      eventHistory: eventHistory,
+      exportTime: new Date().toLocaleString('zh-CN')
+    };
+
+    const dataStr = JSON.stringify(gameData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `carbon-clash-auto-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('🎯 Game data auto-exported successfully!');
+  };
+
   // End game
   const endGame = (reason: string, message: string) => {
     const scores = players.map(player => ({
@@ -262,6 +307,11 @@ export const useMultiPlayerGameState = () => {
     
     setGamePhase('ended');
     console.log(`Game ended: ${reason} - ${message}`);
+    
+    // 自动导出游戏数据
+    setTimeout(() => {
+      autoExportGameData(winner, `${reason}: ${message}`, rankedScores, players);
+    }, 1000); // 延迟1秒导出，确保游戏状态已完全更新
   };
 
   // Restart game

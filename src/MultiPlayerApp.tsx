@@ -442,6 +442,8 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
          reason={gameResult.reason}
          scores={gameResult.scores}
          players={players}
+         eventHistory={eventHistory}
+         turnCount={turnCount}
          onRestart={restartGame}
          onBackToMenu={onBackToMenu}
        />
