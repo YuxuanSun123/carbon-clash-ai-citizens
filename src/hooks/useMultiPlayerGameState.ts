@@ -336,7 +336,7 @@ export const useMultiPlayerGameState = () => {
      setAiThinking(false);
   };
 
-  // 计算建筑每回合效果
+  // Calculate building effects per turn
   const calculateBuildingEffects = (player: Player) => {
     let totalIncome = 0;
     let totalCO2 = 0;
@@ -351,16 +351,16 @@ export const useMultiPlayerGameState = () => {
       }
     });
     
-    // 添加政策产生的持续性CO2效果
+    // Add persistent CO2 effects from policies
     totalCO2 += player.co2PerTurn;
     
-    // 添加政策产生的持续性金币效果
+    // Add persistent coin effects from policies
     totalIncome += player.moneyPerTurn;
     
     return { totalIncome, totalCO2, totalEco };
   };
 
-  // 应用事件效果
+  // Apply event effects
   const applyEventEffects = (playerId: number, effects: any) => {
     setPlayers(prev => prev.map(player => {
       if (player.id !== playerId) return player;
@@ -368,7 +368,7 @@ export const useMultiPlayerGameState = () => {
       let newMoney = player.money;
       let newMoneyPerTurn = player.moneyPerTurn;
       
-      // 处理固定金钱变化
+      // Handle fixed money changes
       if (effects.money !== undefined) {
         if (effects.money === -0.1) {
           // 特殊处理：-10%金钱
@@ -593,7 +593,7 @@ export const useMultiPlayerGameState = () => {
       }
     });
     
-    console.log(`🏗️ 找到 ${upgradableBuildings.length} 个可升级建筑:`, upgradableBuildings);
+    console.log(`🏗️ Found ${upgradableBuildings.length} upgradable buildings:`, upgradableBuildings);
     
     // If no upgradeable buildings, return false directly
     if (upgradableBuildings.length === 0) {
@@ -631,39 +631,39 @@ export const useMultiPlayerGameState = () => {
       return shouldUpgrade;
     } catch (error) {
       console.error(`❌ DeepSeek API升级决策失败或超时:`, error);
-      console.log(`🔧 切换到备用升级逻辑...`);
+      console.log(`🔧 Switching to fallback upgrade logic...`);
       
       // 备用升级逻辑
       if (player.type === 'ai-income') {
         // 商业AI：如果有工厂且钱够，优先升级工厂
         const factoryToUpgrade = upgradableBuildings.find(b => b.buildingType === 'factory' && player.money >= b.upgradeCost);
         if (factoryToUpgrade) {
-          console.log(`🏭 备用逻辑: 商业AI选择升级工厂`);
+          console.log(`🏭 Fallback logic: Business AI chooses to upgrade factory`);
           return true;
         }
         // 如果钱很多（超过400），升级任何建筑
         if (player.money >= 400) {
-          console.log(`💰 备用逻辑: 商业AI资金充足，选择升级`);
+          console.log(`💰 Fallback logic: Business AI has sufficient funds, chooses to upgrade`);
           return true;
         }
       } else if (player.type === 'ai-eco') {
         // 环保AI：优先升级绿色建筑
         const greenToUpgrade = upgradableBuildings.find(b => b.buildingType === 'green' && player.money >= b.upgradeCost);
         if (greenToUpgrade) {
-          console.log(`🌱 备用逻辑: 环保AI选择升级绿色建筑`);
+          console.log(`🌱 Fallback logic: Eco AI chooses to upgrade green building`);
           return true;
         }
         // 如果钱很多（超过350），升级非工厂建筑
         if (player.money >= 350) {
           const nonFactoryToUpgrade = upgradableBuildings.find(b => b.buildingType !== 'factory' && player.money >= b.upgradeCost);
           if (nonFactoryToUpgrade) {
-            console.log(`💰 备用逻辑: 环保AI资金充足，选择升级非工厂建筑`);
+            console.log(`💰 Fallback logic: Eco AI has sufficient funds, chooses to upgrade non-factory building`);
             return true;
           }
         }
       }
       
-      console.log(`❌ 备用逻辑: 不升级`);
+      console.log(`❌ Fallback logic: No upgrade`);
       return false;
     }
   };
@@ -713,7 +713,7 @@ export const useMultiPlayerGameState = () => {
       } else {
         console.error('❌ DeepSeek API调用失败，切换到备用逻辑:', error);
       }
-      console.log(`🔄 使用本地备用逻辑进行决策...`);
+      console.log(`🔄 Using local fallback logic for decision making...`);
       
       // 备用逻辑：原有的简单AI决策（使用位置修正后的玩家信息）
       const currentPosition = pathCoordinates[playerWithCorrectPosition.position];
@@ -721,17 +721,17 @@ export const useMultiPlayerGameState = () => {
       
       // 检查格子类型：只有可建造格子才能建造
       if (currentPosition.type !== 'build') {
-        console.log(`⚠️ 备用逻辑决策: 当前格子类型为 ${currentPosition.type}，不是可建造格子，无法建造`);
+        console.log(`⚠️ Fallback logic decision: Current cell type is ${currentPosition.type}, not a buildable cell, cannot build`);
         return null;
       }
       
       // 检查是否可以建造
       if (playerWithCorrectPosition.built[posKey]) {
-        console.log(`⚠️ 备用逻辑决策: 位置已有建筑，无法建造`);
+        console.log(`⚠️ Fallback logic decision: Position already has building, cannot build`);
         return null;
       }
       if (playerWithCorrectPosition.position === 0 && !playerWithCorrectPosition.passedStart) {
-        console.log(`⚠️ 备用逻辑决策: 在起点且未经过起点，无法建造`);
+        console.log(`⚠️ Fallback logic decision: At starting point and haven't passed start, cannot build`);
         return null;
       }
       
@@ -787,7 +787,7 @@ export const useMultiPlayerGameState = () => {
     // 检查格子类型，只有'build'类型的格子才能建造
     const currentCell = pathCoordinates[checkPosition];
     if (!currentCell || currentCell.type !== 'build') {
-      console.log(`🚫 位置 ${checkPosition} 不是建造格子，类型: ${currentCell?.type || 'unknown'}`);
+      console.log(`🚫 Position ${checkPosition} is not a build cell, type: ${currentCell?.type || 'unknown'}`);
       return false;
     }
     
@@ -841,12 +841,12 @@ export const useMultiPlayerGameState = () => {
     setPlayers(prev => {
       const player = prev.find(p => p.id === playerId);
       if (!player) {
-        console.log(`建造错误: 找不到玩家ID ${playerId}`);
+        console.log(`Build error: Player ID ${playerId} not found`);
         return prev;
       }
       
       if (player.money < cost) {
-        console.log(`建造失败: 玩家 ${player.name} 金钱不足，需要 ${cost}，当前有 ${player.money}`);
+        console.log(`Build failed: Player ${player.name} insufficient funds, needs ${cost}, currently has ${player.money}`);
         return prev;
       }
 
@@ -904,7 +904,7 @@ export const useMultiPlayerGameState = () => {
     // 添加升级锁定机制，防止重复升级
     const upgradeKey = `${playerId}-${posKey}`;
     if ((window as any).upgradeInProgress && (window as any).upgradeInProgress.has(upgradeKey)) {
-      console.log(`⚠️ 升级已在进行中，跳过重复请求: ${upgradeKey}`);
+      console.log(`⚠️ Upgrade already in progress, skipping duplicate request: ${upgradeKey}`);
       return;
     }
     
@@ -970,7 +970,7 @@ export const useMultiPlayerGameState = () => {
         p.id === player.id ? { ...p, skipTurns: p.skipTurns - 1 } : p
       ));
       setDiceRoll(steps);
-      console.log(`玩家 ${player.name} 跳过回合，剩余跳过次数: ${player.skipTurns - 1}`);
+      console.log(`Player ${player.name} skips turn, remaining skip turns: ${player.skipTurns - 1}`);
       // 使用nextTurn函数来确保正确的回合切换
       nextTurn();
       return;
@@ -1081,11 +1081,11 @@ export const useMultiPlayerGameState = () => {
           // AI player on event cell: only switch turns directly for non-policy cells
           if (!isPolicyCell) {
             setTimeout(() => {
-              console.log(`AI玩家 ${player.name} 事件处理完成，直接切换到下一回合`);
+              console.log(`AI player ${player.name} event processing completed, switching to next turn directly`);
               nextTurn();
             }, 2000); // 给事件处理一些时间
           } else {
-            console.log(`AI玩家 ${player.name} 在政策格子上，等待政策选择完成后切换回合`);
+            console.log(`AI player ${player.name} is on a policy cell, waiting for policy selection to complete before switching turns`);
           }
         } else {
           // Human player on event cell: wait for user to close event popup before manually switching turns
@@ -1131,7 +1131,7 @@ export const useMultiPlayerGameState = () => {
   const handleAIBuildingById = useCallback(async (playerId: number, actualPosition?: number) => {
     // 检查是否已经在处理这个玩家的建造
     if (aiBuildingInProgress.has(playerId)) {
-      console.log(`⚠️ AI玩家 ${playerId} 建造已在进行中，跳过重复调用`);
+      console.log(`⚠️ AI player ${playerId} building already in progress, skipping duplicate call`);
       return;
     }
     
@@ -1152,7 +1152,7 @@ export const useMultiPlayerGameState = () => {
       const currentPlayers = players;
       const player = currentPlayers.find(p => p.id === playerId);
       if (!player) {
-        console.log(`AI建造错误: 找不到玩家ID ${playerId}`);
+        console.log(`AI build error: Player ID ${playerId} not found`);
         clearBuildingLock(); // 清除建造锁
         return;
       }
@@ -1195,7 +1195,7 @@ export const useMultiPlayerGameState = () => {
             const shouldUpgrade = await getAIUpgradeChoice(updatedPlayer);
             
             if (shouldUpgrade) {
-              console.log(`AI玩家 ${updatedPlayer.name} 决定升级建筑`);
+              console.log(`AI player ${updatedPlayer.name} decides to upgrade building`);
               
               // 找到第一个可升级的建筑并升级
               const upgradableBuildings: Array<{position: number, buildingType: BuildingType, upgradeCost: number}> = [];
@@ -1229,7 +1229,7 @@ export const useMultiPlayerGameState = () => {
               }
               
               if (buildingToUpgrade) {
-                console.log(`AI玩家 ${updatedPlayer.name} 升级位置 ${buildingToUpgrade.position} 的 ${buildingToUpgrade.buildingType} 建筑`);
+                console.log(`AI player ${updatedPlayer.name} upgrades ${buildingToUpgrade.buildingType} building at position ${buildingToUpgrade.position}`);
                 upgradeAtCurrentForPlayer(playerId, buildingToUpgrade.position);
               }
             } else {
@@ -1250,7 +1250,7 @@ export const useMultiPlayerGameState = () => {
     } catch (error) {
       console.error(`AI建造决策失败:`, error);
       setTimeout(() => {
-        console.log(`AI玩家建造失败，切换到下一回合`);
+        console.log(`AI player build failed, switching to next turn`);
         nextTurn();
         clearBuildingLock(); // 清除建造锁
       }, 1000);
@@ -1266,14 +1266,14 @@ export const useMultiPlayerGameState = () => {
 
   // 测试AI建筑选择（调试用）
   const testAIBuildingChoice = async () => {
-    console.log('🧪 手动测试AI建筑选择...');
+    console.log('🧪 Manual testing AI building selection...');
     const aiPlayer = players.find(p => p.type !== 'human');
     if (aiPlayer) {
-      console.log('🎯 找到AI玩家:', aiPlayer.name);
+      console.log('🎯 Found AI player:', aiPlayer.name);
       const choice = await getAIBuildingChoice(aiPlayer);
-      console.log('🎲 测试结果:', choice);
+      console.log('🎲 Test result:', choice);
     } else {
-      console.log('❌ 未找到AI玩家');
+      console.log('❌ AI player not found');
     }
   };
 
@@ -1332,7 +1332,7 @@ export const useMultiPlayerGameState = () => {
         foundNextPlayer = true;
         
         if (player.type === 'human') {
-          console.log(`🗳️ 轮到人类玩家 ${player.name} 投票`);
+          console.log(`🗳️ Human player ${player.name}'s turn to vote`);
           // 人类玩家通过UI投票，不需要自动触发
           break;
         } else {
@@ -1358,7 +1358,7 @@ export const useMultiPlayerGameState = () => {
     console.log(`👤 handlePolicyVote started: player ${playerId} (${players[playerId]?.name}) chose ${choiceIndex}`);
     
     if (!votingInProgress || votedPlayers.has(playerId)) {
-      console.log(`❌ 人类投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
+      console.log(`❌ Human voting blocked: votingInProgress=${votingInProgress}, already voted=${votedPlayers.has(playerId)}`);
       return;
     }
     
@@ -1383,7 +1383,7 @@ export const useMultiPlayerGameState = () => {
     console.log(`🤖 handleAIVote started: player ${playerId} (${players[playerId]?.name})`);
     
     if (!votingInProgress || votedPlayers.has(playerId)) {
-      console.log(`❌ AI投票被阻止: votingInProgress=${votingInProgress}, 已投票=${votedPlayers.has(playerId)}`);
+      console.log(`❌ AI voting blocked: votingInProgress=${votingInProgress}, already voted=${votedPlayers.has(playerId)}`);
       return;
     }
     
@@ -1438,13 +1438,13 @@ export const useMultiPlayerGameState = () => {
   
   // 完成政策投票并显示结果
   const finalizePolicyVoting = () => {
-    console.log(`🔍 finalizePolicyVoting 开始执行`);
+    console.log(`🔍 finalizePolicyVoting started executing`);
     console.log(`🔍 currentPolicy:`, currentPolicy);
     console.log(`🔍 votingInProgress:`, votingInProgress);
     console.log(`🔍 playerVotes:`, playerVotes);
     
     if (!currentPolicy || !votingInProgress) {
-      console.log(`❌ finalizePolicyVoting 提前返回: currentPolicy=${!!currentPolicy}, votingInProgress=${votingInProgress}`);
+      console.log(`❌ finalizePolicyVoting early return: currentPolicy=${!!currentPolicy}, votingInProgress=${votingInProgress}`);
       return;
     }
     

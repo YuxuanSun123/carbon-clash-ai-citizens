@@ -15,7 +15,7 @@ const DiceRoller = ({ onRoll, diceModifier = 0 }: DiceRollerProps) => {
       // 公交出行：只能投出1,3,5,7点数
       const busRolls = [1, 3, 5, 7];
       finalRoll = busRolls[Math.floor(Math.random() * busRolls.length)];
-      console.log(`人类玩家使用公交出行，掷出 ${finalRoll} 点`);
+      console.log(`Human player uses public transport, rolled ${finalRoll} points`);
     } else {
       const baseRoll = Math.floor(Math.random() * 6) + 1;
       finalRoll = Math.max(1, Math.min(6, baseRoll + diceModifier)); // 应用骰子修改器，限制在1-6范围内
