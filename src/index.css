@@ -1,3 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;800;900&family=Orbitron:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .landing-theme,
+  .landing-theme * {
+    forced-color-adjust: none;
+  }
+
+  .landing-theme {
+    color: #f8fafc;
+  }
+
+  .landing-theme .landing-text {
+    color: #f8fafc !important;
+  }
+
+  .landing-theme .landing-text-soft {
+    color: #e2f3ff !important;
+  }
+
+  .landing-theme .landing-title {
+    color: #ffffff !important;
+    text-shadow: 0 3px 24px rgba(184, 244, 255, 0.6);
+  }
+}

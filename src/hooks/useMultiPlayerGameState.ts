@@ -38,6 +38,26 @@ export interface Player {
   moneyPerTurn: number; // Money consumption per turn (negative for consumption)
 }
 
+type EffectPayload = {
+  money?: number;
+  co2?: number;
+  eco?: number;
+  skipTurns?: number;
+  diceModifier?: number;
+  co2PerTurn?: number;
+  moneyPerTurn?: number;
+};
+
+type RankedScore = {
+  playerId: number;
+  score: number;
+  rank: number;
+};
+
+type UpgradeTrackingWindow = Window & {
+  upgradeInProgress?: Set<string>;
+};
+
 
 
 export const useMultiPlayerGameState = () => {
@@ -238,7 +258,7 @@ export const useMultiPlayerGameState = () => {
   }, [votedPlayers, votingInProgress, currentPolicy, players.length]);
 
   // 自动导出游戏数据
-  const autoExportGameData = (winner: Player | null, reason: string, scores: any[], players: Player[]) => {
+  const autoExportGameData = (winner: Player | null, reason: string, scores: RankedScore[], players: Player[]) => {
     const gameData = {
       gameInfo: {
         endTime: new Date().toISOString(),
@@ -411,7 +431,7 @@ export const useMultiPlayerGameState = () => {
   };
 
   // Apply event effects
-  const applyEventEffects = (playerId: number, effects: any) => {
+  const applyEventEffects = (playerId: number, effects: EffectPayload) => {
     setPlayers(prev => prev.map(player => {
       if (player.id !== playerId) return player;
       
@@ -512,10 +532,11 @@ export const useMultiPlayerGameState = () => {
       case 'nature':
         event = getRandomEvent(natureRewards);
         break;
-      case 'policy':
+      case 'policy': {
         const policy = getRandomPolicyChoice();
         startPolicyVoting(policy);
         return;
+      }
       default:
         return;
     }
@@ -868,7 +889,8 @@ export const useMultiPlayerGameState = () => {
     
     // 检查升级锁定状态
     const upgradeKey = `${playerId}-${posKey}`;
-    if ((window as any).upgradeInProgress && (window as any).upgradeInProgress.has(upgradeKey)) {
+    const upgradeWindow = window as UpgradeTrackingWindow;
+    if (upgradeWindow.upgradeInProgress?.has(upgradeKey)) {
       return false;
     }
     
@@ -911,8 +933,8 @@ export const useMultiPlayerGameState = () => {
         if (p.id !== playerId) return p;
         
         // 应用建造时的一次性效果
-        let newCO2 = Math.max(0, p.co2 + building.co2);
-        let newEco = Math.max(0, p.eco + building.eco);
+        const newCO2 = Math.max(0, p.co2 + building.co2);
+        const newEco = Math.max(0, p.eco + building.eco);
         
         const updatedPlayer = {
           ...p,
@@ -953,18 +975,19 @@ export const useMultiPlayerGameState = () => {
     
     // 添加升级锁定机制，防止重复升级
     const upgradeKey = `${playerId}-${posKey}`;
-    if ((window as any).upgradeInProgress && (window as any).upgradeInProgress.has(upgradeKey)) {
+    const upgradeWindow = window as UpgradeTrackingWindow;
+    if (upgradeWindow.upgradeInProgress?.has(upgradeKey)) {
       console.log(`⚠️ Upgrade already in progress, skipping duplicate request: ${upgradeKey}`);
       return;
     }
     
     // 初始化升级进行中的集合
-    if (!(window as any).upgradeInProgress) {
-      (window as any).upgradeInProgress = new Set();
+    if (!upgradeWindow.upgradeInProgress) {
+      upgradeWindow.upgradeInProgress = new Set<string>();
     }
     
     // 添加升级锁定
-    (window as any).upgradeInProgress.add(upgradeKey);
+    upgradeWindow.upgradeInProgress.add(upgradeKey);
     
     setPlayers(prev => prev.map(p => {
       if (p.id !== playerId) return p;
@@ -980,8 +1003,8 @@ export const useMultiPlayerGameState = () => {
       const upgradeCO2Effect = Math.floor(baseBuilding.co2 / 2);
       const upgradeEcoEffect = Math.floor(baseBuilding.eco / 2);
       
-      let newCO2 = Math.max(0, p.co2 + upgradeCO2Effect);
-      let newEco = Math.max(0, p.eco + upgradeEcoEffect);
+      const newCO2 = Math.max(0, p.co2 + upgradeCO2Effect);
+      const newEco = Math.max(0, p.eco + upgradeEcoEffect);
       
       const updatedPlayer = {
         ...p,
@@ -996,8 +1019,8 @@ export const useMultiPlayerGameState = () => {
     
     // 延迟清除升级锁定
     setTimeout(() => {
-      if ((window as any).upgradeInProgress) {
-        (window as any).upgradeInProgress.delete(upgradeKey);
+      if (upgradeWindow.upgradeInProgress) {
+        upgradeWindow.upgradeInProgress.delete(upgradeKey);
       }
     }, 1000);
   };

@@ -8,6 +8,8 @@ interface PolicyResultModalProps {
   onClose: () => void;
 }
 
+type PolicyEffects = PolicyChoice['choices'][number]['effects'];
+
 const PolicyResultModal = ({ 
   policy, 
   winningChoiceIndex, 
@@ -18,17 +20,14 @@ const PolicyResultModal = ({
   const winningChoice = policy.choices[winningChoiceIndex];
   const winningVotes = votes[winningChoiceIndex] || 0;
 
-  const getEffectText = (effects: any) => {
-    const parts = [];
+  const getEffectText = (effects: PolicyEffects) => {
+    const parts: string[] = [];
     if (effects.money !== undefined) {
       if (effects.money === -0.1) {
         parts.push(`💰 -10%`);
       } else {
         parts.push(`💰 ${effects.money > 0 ? '+' : ''}${effects.money}`);
       }
-    }
-    if (effects.moneyPercentage) {
-      parts.push(`💰 ${effects.moneyPercentage > 0 ? '+' : ''}${effects.moneyPercentage}%`);
     }
     if (effects.co2) {
       parts.push(`🏭 ${effects.co2 > 0 ? '+' : ''}${effects.co2}`);

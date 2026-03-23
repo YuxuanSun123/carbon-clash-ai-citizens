@@ -8,7 +8,7 @@ import GameEndModal from "./components/GameEndModal";
 import DebugPanel from "./components/DebugPanel";
 // import ApiTestButton from "./components/ApiTestButton";
 import { useMultiPlayerGameState } from "./hooks/useMultiPlayerGameState";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 
 interface MultiPlayerAppProps {
   onBackToMenu?: () => void;
@@ -69,10 +69,31 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
   } = useMultiPlayerGameState();
 
   const [showHistory, setShowHistory] = useState(false);
+  const safeMaxTurns = Number.isFinite(MAX_TURNS) && MAX_TURNS > 0 ? MAX_TURNS : 1;
+  const safeGlobalCO2Limit = Number.isFinite(GLOBAL_CO2_LIMIT) && GLOBAL_CO2_LIMIT > 0 ? GLOBAL_CO2_LIMIT : 1;
+  const totalCO2 = players.reduce((total, p) => total + p.co2, 0);
+  const warningThreshold = safeGlobalCO2Limit * 0.8;
+  const isGlobalCO2Critical = totalCO2 > warningThreshold;
+  const globalCO2Ratio = Math.min(100, (totalCO2 / safeGlobalCO2Limit) * 100);
+  const turnProgress = Math.min(100, (turnCount / safeMaxTurns) * 100);
+
+  if (!currentPlayer) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-3xl mb-3">🌍</div>
+          <div className="text-lg font-semibold">Loading game data...</div>
+        </div>
+      </div>
+    );
+  }
 
   // Expose debug functions to global object (development only)
   if (import.meta.env.DEV) {
-    (window as any).debugTestAIChoice = debugTestAIChoice;
+    const debugWindow = window as Window & {
+      debugTestAIChoice?: typeof debugTestAIChoice;
+    };
+    debugWindow.debugTestAIChoice = debugTestAIChoice;
     console.log('🔧 Debug function exposed: window.debugTestAIChoice()');
   }
 
@@ -114,27 +135,26 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
               </button>
             )}
             <div className="flex items-center gap-4 text-sm">
-              {/* Turn progress */}
-              <div className="text-gray-300">
-                Turn <span className="text-cyan-400 font-bold">{turnCount}</span>
-                <span className="text-gray-500">/{MAX_TURNS}</span>
+              <div className="min-w-[170px]">
+                <div className="text-gray-300">
+                  Turn <span className="text-cyan-400 font-bold">{turnCount}</span>
+                  <span className="text-gray-500">/{MAX_TURNS}</span>
+                </div>
+                <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-300"
+                    style={{ width: `${turnProgress}%` }}
+                  />
+                </div>
               </div>
               
-              {/* Global CO2 warning */}
-              {(() => {
-                const totalCO2 = players.reduce((total, p) => total + p.co2, 0);
-                const warningThreshold = GLOBAL_CO2_LIMIT * 0.8;
-                if (totalCO2 > warningThreshold) {
-                  return (
-                    <div className="bg-red-500/20 border border-red-500/50 rounded-lg px-2 py-1">
-                      <span className="text-red-300 text-xs font-medium">
-                        🌍 Global CO2 Crisis: {totalCO2}/{GLOBAL_CO2_LIMIT}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+              {isGlobalCO2Critical && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg px-2 py-1">
+                  <span className="text-red-300 text-xs font-medium">
+                    🌍 Global CO2 Crisis: {totalCO2}/{GLOBAL_CO2_LIMIT}
+                  </span>
+                </div>
+              )}
               
               {/* Bankruptcy warning */}
               {currentPlayer.money < BANKRUPTCY_THRESHOLD && (
@@ -189,8 +209,8 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                 built={getAllBuildings()}
                 canBuildHere={canBuildHere}
                 buildAtCurrent={buildAtCurrent}
-                canUpgradeHere={useCallback(() => canUpgradeHere(currentPlayer.id), [canUpgradeHere, currentPlayer.id])}
-                upgradeAtCurrent={useCallback(() => upgradeAtCurrent(currentPlayer.id), [upgradeAtCurrent, currentPlayer.id])}
+                canUpgradeHere={() => canUpgradeHere(currentPlayer.id)}
+                upgradeAtCurrent={() => upgradeAtCurrent(currentPlayer.id)}
                 currentEvent={showEventModal ? currentEvent : null}
                 onCloseEvent={closeEventModal}
                 players={players}
@@ -227,7 +247,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
         </div>
 
         {/* Right data panel */}
-        <div className="w-80 bg-black/20 backdrop-blur-md border-l border-white/10 p-4 overflow-y-auto flex-shrink-0">
+        <div className="w-80 xl:w-[22rem] bg-black/20 backdrop-blur-md border-l border-white/10 p-4 overflow-y-auto flex-shrink-0">
           {/* All players status */}
           <div className="mb-6">
             <h2 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
@@ -235,11 +255,11 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
             </h2>
             <div className="space-y-3">
               {players.map((player, index) => (
-                <div 
+                <div
                   key={player.id} 
                   className={`rounded-xl p-4 border transition-all ${
                     index === currentPlayerIndex 
-                      ? 'bg-cyan-500/20 border-cyan-500/50 shadow-lg' 
+                      ? 'bg-cyan-500/20 border-cyan-500/50 shadow-lg ring-1 ring-cyan-300/30' 
                       : 'bg-gray-500/10 border-gray-500/30'
                   }`}
                 >
@@ -267,6 +287,10 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                       <div className="text-green-400 font-bold">{player.eco}</div>
                       <div className="text-gray-400 text-xs">🌱</div>
                     </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                    <span>📍 Pos {player.position}</span>
+                    <span>🏗️ {Object.keys(player.built).length}</span>
                   </div>
                 </div>
               ))}
@@ -311,7 +335,7 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
               
               {/* Global CO2 total display */}
               <div className={`bg-gradient-to-r rounded-xl p-4 border ${
-                players.reduce((total, p) => total + p.co2, 0) > GLOBAL_CO2_LIMIT * 0.8
+                isGlobalCO2Critical
                   ? 'from-red-600/30 to-red-500/30 border-red-500/50'
                   : 'from-blue-500/20 to-purple-500/20 border-blue-500/30'
               }`}>
@@ -322,14 +346,20 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                   </div>
                   <div className="text-right">
                     <div className={`text-2xl font-bold ${
-                      players.reduce((total, p) => total + p.co2, 0) > GLOBAL_CO2_LIMIT * 0.8
+                      isGlobalCO2Critical
                         ? 'text-red-400'
                         : 'text-blue-400'
                     }`}>
-                      {players.reduce((total, p) => total + p.co2, 0)}
+                      {totalCO2}
                     </div>
                     <div className="text-xs text-gray-400">Limit: {GLOBAL_CO2_LIMIT}</div>
                   </div>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-black/30 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${isGlobalCO2Critical ? 'bg-red-400' : 'bg-cyan-400'}`}
+                    style={{ width: `${globalCO2Ratio}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -381,6 +411,12 @@ function MultiPlayerApp({ onBackToMenu }: MultiPlayerAppProps) {
                   }`}>
                     {getTotalEcoPerTurn() > 0 ? '+' : ''}{getTotalEcoPerTurn()}
                   </span>
+                </div>
+              )}
+
+              {getTotalIncome() === 0 && getTotalCO2PerTurn() === 0 && getTotalEcoPerTurn() === 0 && (
+                <div className="rounded-lg p-3 border border-white/10 bg-white/5 text-gray-400 text-sm text-center">
+                  No per-turn effects yet
                 </div>
               )}
             </div>

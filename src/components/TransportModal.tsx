@@ -135,5 +135,3 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose, onChoo
 };
 
 export default TransportModal;
-export { transportChoices };
-export type { TransportChoice };

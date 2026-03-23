@@ -49,6 +49,8 @@ interface GameMapProps {
   getBuildingOwner?: (position: number) => Player | null; // 获取建筑所有者
 }
 
+type EventEffects = NonNullable<NonNullable<GameMapProps['currentEvent']>['effects']>;
+
 /**
  * 玩家颜色主题配置
  * 为不同玩家提供独特的视觉标识
@@ -140,7 +142,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
    * 使用 React.memo 进行性能优化，避免不必要的重渲染
    * 统一管理建筑的视觉样式和颜色主题
    */
-  const BuildingDisplay = React.memo(({ index, building, owner }: { index: number, building: BuildingInfo, owner: any }) => {
+  const BuildingDisplay = React.memo(({ index, building, owner }: { index: number, building: BuildingInfo, owner: Player | null }) => {
     const colors = owner ? getPlayerColors(owner.id) : DEFAULT_COLORS;
     const ringClass = colors.ring ? `ring-2 ${colors.ring}` : '';
     
@@ -453,7 +455,7 @@ const GameMap: React.FC<GameMapProps> = ({ playerIndex, built, canBuildHere, bui
   };
   
   // 获取事件效果文本
-  const getEffectText = (effects: any) => {
+  const getEffectText = (effects: EventEffects) => {
     const parts: string[] = [];
     
     if (effects.money) {

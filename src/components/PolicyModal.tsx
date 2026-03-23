@@ -14,6 +14,8 @@ interface PolicyModalProps {
   currentVotingPlayerId?: number;
 }
 
+type PolicyEffects = PolicyChoice['choices'][number]['effects'];
+
 const PolicyModal = ({ 
   policy, 
   onChoice, 
@@ -26,8 +28,8 @@ const PolicyModal = ({
   players = [],
   currentVotingPlayerId
 }: PolicyModalProps) => {
-  const getEffectText = (effects: any) => {
-    const parts = [];
+  const getEffectText = (effects: PolicyEffects) => {
+    const parts: string[] = [];
     if (effects.money !== undefined) {
       if (effects.money === -0.1) {
         parts.push(`💰 -10%`);

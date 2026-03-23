@@ -1,6 +1,7 @@
 // DeepSeek API Service
 import type { Player, PlayerType } from '../hooks/useMultiPlayerGameState';
 import type { BuildingType } from '../data/buildings';
+import type { PolicyChoice } from '../data/events';
 import { pathCoordinates } from '../utils/path';
 
 // DeepSeek API Configuration
@@ -644,7 +645,7 @@ function getFallbackAIChoice(player: Player): BuildingType | null {
 // Policy choice AI (optional feature)
 export async function getAIPolicyChoiceFromDeepSeek(
   player: Player,
-  policyChoices: Array<{ text: string; effects: any }>
+  policyChoices: PolicyChoice['choices']
 ): Promise<number> {
   try {
     const systemPrompt = buildSystemPrompt(player.type) + '\n\nNow you need to choose a policy option, please return the option number (0, 1, 2, etc.).';
@@ -727,7 +728,7 @@ export async function getAIPolicyChoiceFromDeepSeek(
 }
 
 // Fallback policy choice logic
-function getFallbackPolicyChoice(player: Player, policyChoices: Array<{ text: string; effects: any }>): number {
+function getFallbackPolicyChoice(player: Player, policyChoices: PolicyChoice['choices']): number {
   if (player.type === 'ai-income') {
     // Business AI prioritizes options that increase money
     const bestChoice = policyChoices.findIndex(choice => (choice.effects.money || 0) > 0);

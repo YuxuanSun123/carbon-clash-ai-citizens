@@ -115,11 +115,12 @@ export const useGameState = () => {
       case 'nature':
         event = getRandomEvent(natureRewards);
         break;
-      case 'policy':
+      case 'policy': {
         const policy = getRandomPolicyChoice();
         setCurrentPolicy(policy);
         setShowPolicyModal(true);
         return;
+      }
       default:
         return;
     }
